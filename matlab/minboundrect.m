@@ -126,7 +126,7 @@ end
 % points in the interior of the convex hull are
 % never needed, so we drop them.
 if n>3
-  edges = convhull(x,y,{'Qt'});  % 'Pp' will silence the warnings
+  edges = convhull(x,y);  % 'Pp' will silence the warnings
 
   % exclude those points inside the hull as not relevant
   % also sorts the points into their convex hull as a

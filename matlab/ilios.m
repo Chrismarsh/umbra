@@ -76,7 +76,11 @@ tri=DelaunayTri(x,y);
 color=zeros(size(tri.Triangulation));
 hs=[];
 
-
+%spatial grid
+%number of cells in x direction
+sg_nx=2;
+%number of cells in y direction
+sg_ny=2;
 
 if strcmp(viewpoint,'basin')
     hp=plot3(xb, yb, zb,'o','Color','black');
@@ -135,14 +139,66 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
     end
     
     %OBB computation 
+%     -----------------------
+    
+%         4       top      3
+%         +--------+--------+
+%         |        |        |
+%         |        |        |
+%   left  +--------+--------+    right
+%         |        |        |
+%         |        |        |
+%         +-----------------+
+%         1     bottom      2
+% +y
+% ^
+% |
+% +-> +x
+
+
+    %only need 1:4 of these 5x1 vectors bbx, bby
     [bbx,bby,area,per]=minboundrect(proj_x,proj_y);
     tbb=[bbx,bby];
-%     tbb=zeros(length(bbx),3);
-%     %transform OBB
-%     for i=1:length(bbx)
-%        coord = K*[bbx(i);bby(i);0];
-%        tbb(i,:)=coord;
-%     end
+    
+    %mid points for the spatial segmentation
+    %row 1 is the "top" line, and row 2 is the "bottom" line w.r.t +y
+%     x_mp.top=zeros(sg_nx,1); %x,y points
+%     x_mp.bottom=zeros(sg_nx,1);
+    
+    m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
+    step=(bbx(2)-bbx(1))/sg_nx;
+    for i=1:sg_nx
+        xpos=bbx(1)+step*i;
+        x_mp.bottom(i).x=xpos;
+        x_mp.bottom(i).y=m*(xpos-bbx(1))+bby(1); %2pt line eqn
+        x_mp.top(i).x=xpos;
+        x_mp.top(i).y=m*(xpos-bbx(4))+bby(4); %2pt line eqn
+    end
+
+    rectangles=zeros(sg_nx,4,2);
+    for i=1:sg_nx
+        %first rect
+       if i ==1
+           rectangles(1,:,:)=[[bbx(1),bby(1)];...%bottom left
+                         [x_mp.bottom(1).x,x_mp.bottom(1).y];...%bottom right mid point
+                         [x_mp.top(1).x,x_mp.top(1).y];... %top right mid point
+                         [bbx(4),bby(4)]]; %top right
+%        last rect
+       else if i==sg_nx
+           rectangles(i,:,:)= [[x_mp.bottom(i).x,x_mp.bottom(i).y];...
+                           [bbx(2),bby(2)];...
+                           [bbx(3),bby(3)];...
+                           [x_mp.top(i).x,x_mp.top(i).y]];
+           else
+             rectangles(i,:,:)=[[x_mp.bottom(i).x,x_mp.bottom(i).y];...
+                           [x_mp.bottom(i+1).x,x_mp.bottom(i+1).y];...
+                           [x_mp.top(i+1).x,x_mp.top(i+1).y];...
+                           [x_mp.top(i).x,x_mp.top(i).y]];
+           end
+       end
+           
+    end
+    
     
 %     new_tri=[tri.Triangulation(:,:) triC(:,3)];
 %     new_tri=sort(new_tri,4,'descend');
@@ -186,8 +242,12 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         delete(ht.th);
     end
 
-    plot(tbb(:,1),tbb(:,2),'color','red','linewidth',10)
-
+     plot(tbb(:,1),tbb(:,2),'color','red','linewidth',10);
+    for i=1:sg_nx
+        temp=rectangles(i,:,:);
+       plot(temp,'color','blue','linewidth',10);
+    end
+     
         
     if  exist('p','var')==0
         if strcmp(viewpoint,'basin')

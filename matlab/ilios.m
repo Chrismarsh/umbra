@@ -26,7 +26,6 @@
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 % POSSIBILITY OF SUCH DAMAGE.
 
-% test branching of git 
 clear all
 close all
 
@@ -76,6 +75,7 @@ frame=1;
 tri=DelaunayTri(x,y);
 color=zeros(size(tri.Triangulation));
 hs=[];
+
 
 
 if strcmp(viewpoint,'basin')
@@ -134,7 +134,15 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         proj_z(i) = coord(3);%should this be -coord(3) ?? -z axis ?? no...
     end
     
-
+    %OBB computation 
+    [bbx,bby,area,per]=minboundrect(proj_x,proj_y);
+    tbb=[bbx,bby];
+%     tbb=zeros(length(bbx),3);
+%     %transform OBB
+%     for i=1:length(bbx)
+%        coord = K*[bbx(i);bby(i);0];
+%        tbb(i,:)=coord;
+%     end
     
 %     new_tri=[tri.Triangulation(:,:) triC(:,3)];
 %     new_tri=sort(new_tri,4,'descend');
@@ -178,6 +186,9 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         delete(ht.th);
     end
 
+    plot(tbb(:,1),tbb(:,2),'color','red','linewidth',10)
+
+        
     if  exist('p','var')==0
         if strcmp(viewpoint,'basin')
             p = patch( ...
@@ -210,7 +221,6 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         refreshdata
     end
     ht= mtit(datestr(addtodate(datenum(time, 'yyyy/mm/dd HH:MM:SS'),-UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS'), 'fontsize',14) ;
-
   
 
 %     F(frame)=getframe(gcf);

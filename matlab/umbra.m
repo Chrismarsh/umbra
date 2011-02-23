@@ -78,7 +78,7 @@ hs=[];
 
 %spatial grid
 %number of cells in x direction
-sg_nx=2;
+sg_nx=3;
 %number of cells in y direction
 sg_ny=2;
 
@@ -158,42 +158,61 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
 
     %only need 1:4 of these 5x1 vectors bbx, bby
     [bbx,bby,area,per]=minboundrect(proj_x,proj_y);
-    tbb=[bbx,bby];
+    tbb=[bbx(1:4),bby(1:4)]; %ignore the last point because it is out of order. Indecies follow the above naming convention
     
-    %mid points for the spatial segmentation
-    %row 1 is the "top" line, and row 2 is the "bottom" line w.r.t +y
-%     x_mp.top=zeros(sg_nx,1); %x,y points
-%     x_mp.bottom=zeros(sg_nx,1);
-    
-    m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
-    step=(bbx(2)-bbx(1))/sg_nx;
-    for i=1:sg_nx
-        xpos=bbx(1)+step*i;
-        x_mp.bottom(i).x=xpos;
-        x_mp.bottom(i).y=m*(xpos-bbx(1))+bby(1); %2pt line eqn
-        x_mp.top(i).x=xpos;
-        x_mp.top(i).y=m*(xpos-bbx(4))+bby(4); %2pt line eqn
-    end
+%testing code that plots the 4 points of the rectangle
+% for i=1:4
+%     hold on
+%    plot(tbb(i,1),tbb(i,2),'o');text(tbb(i,1)+5,tbb(i,2)+5,num2str(i)); 
+%    pause
+% end
 
-    rectangles=zeros(sg_nx,4,2);
+    hold on
+    %plot bounding rectangle
+    plot(bbx(:),bby(:),'color','red','linewidth',5);
+   
+    m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
+    step=(bbx(3)-bbx(4))/sg_nx;
+    for i=1:sg_nx
+        xpos.bottom=bbx(1)+step*i;
+        xpos.top=bbx(4)+step*i;
+        
+        x_mp.bottom(i).x=xpos.bottom;
+        x_mp.bottom(i).y=m*(xpos.bottom-bbx(1))+bby(1); %2pt line eqn
+        
+        
+        x_mp.top(i).x=xpos.top;
+        x_mp.top(i).y=m*(xpos.top-bbx(4))+bby(4); %2pt line eqn
+        
+        plot(x_mp.bottom(i).x,x_mp.bottom(i).y,'o','color','blue')
+        plot(x_mp.top(i).x,x_mp.top(i).y,'o','color','blue')
+    end
+     
+    hold off %kinda screws up some of the other plotting for some reason
+    
+    
+    rectangles=cell(sg_nx,1);
     for i=1:sg_nx
         %first rect
        if i ==1
-           rectangles(1,:,:)=[[bbx(1),bby(1)];...%bottom left
+           rectangles{1}=[[bbx(1),bby(1)];...%bottom left
                          [x_mp.bottom(1).x,x_mp.bottom(1).y];...%bottom right mid point
                          [x_mp.top(1).x,x_mp.top(1).y];... %top right mid point
-                         [bbx(4),bby(4)]]; %top right
+                         [bbx(4),bby(4)];...%top right
+                         [bbx(1),bby(1)]]; 
 %        last rect
        else if i==sg_nx
-           rectangles(i,:,:)= [[x_mp.bottom(i).x,x_mp.bottom(i).y];...
+           rectangles{i}= [[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
                            [bbx(2),bby(2)];...
                            [bbx(3),bby(3)];...
-                           [x_mp.top(i).x,x_mp.top(i).y]];
+                           [x_mp.top(i-1).x,x_mp.top(i-1).y];...
+                           [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
            else
-             rectangles(i,:,:)=[[x_mp.bottom(i).x,x_mp.bottom(i).y];...
-                           [x_mp.bottom(i+1).x,x_mp.bottom(i+1).y];...
-                           [x_mp.top(i+1).x,x_mp.top(i+1).y];...
-                           [x_mp.top(i).x,x_mp.top(i).y]];
+             rectangles{i}=[[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
+                           [x_mp.bottom(i).x,x_mp.bottom(i).y];...
+                           [x_mp.top(i).x,x_mp.top(i).y];...
+                           [x_mp.top(i-1).x,x_mp.top(i-1).y];...
+                           [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
            end
        end
            
@@ -242,12 +261,14 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         delete(ht.th);
     end
 
-     plot(tbb(:,1),tbb(:,2),'color','red','linewidth',10);
+%      plot(tbb(:,1),tbb(:,2),'color','red','linewidth',10);
+hold on
     for i=1:sg_nx
-        temp=rectangles(i,:,:);
-       plot(temp,'color','blue','linewidth',10);
+        
+       plot(rectangles{i},'color','blue','linewidth',10);
     end
-     
+hold off
+pause
         
     if  exist('p','var')==0
         if strcmp(viewpoint,'basin')

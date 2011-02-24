@@ -79,8 +79,6 @@ hs=[];
 %spatial grid
 %number of cells in x direction
 sg_nx=3;
-%number of cells in y direction
-sg_ny=2;
 
 if strcmp(viewpoint,'basin')
     hp=plot3(xb, yb, zb,'o','Color','black');
@@ -154,7 +152,6 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
 % ^
 % |
 % +-> +x
-
 
     %only need 1:4 of these 5x1 vectors bbx, bby
     [bbx,bby,area,per]=minboundrect(proj_x,proj_y);

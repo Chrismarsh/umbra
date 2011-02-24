@@ -160,17 +160,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
     [bbx,bby,area,per]=minboundrect(proj_x,proj_y);
     tbb=[bbx(1:4),bby(1:4)]; %ignore the last point because it is out of order. Indecies follow the above naming convention
     
-%testing code that plots the 4 points of the rectangle
-% for i=1:4
-%     hold on
-%    plot(tbb(i,1),tbb(i,2),'o');text(tbb(i,1)+5,tbb(i,2)+5,num2str(i)); 
-%    pause
-% end
-
-    hold on
-    %plot bounding rectangle
-    plot(bbx(:),bby(:),'color','red','linewidth',5);
-   
+  
     m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
     step=(bbx(3)-bbx(4))/sg_nx;
     for i=1:sg_nx
@@ -188,7 +178,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         plot(x_mp.top(i).x,x_mp.top(i).y,'o','color','blue')
     end
      
-    hold off %kinda screws up some of the other plotting for some reason
+
     
     
     rectangles=cell(sg_nx,1);
@@ -261,15 +251,28 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         delete(ht.th);
     end
 
-%      plot(tbb(:,1),tbb(:,2),'color','red','linewidth',10);
-hold on
-    for i=1:sg_nx
+    
+%testing code that plots the rectangles
+% ------------------------------------------------'
+% Plots the sub rect points
+    % for i=1:4
+    %     hold on
+    %    plot(tbb(i,1),tbb(i,2),'o');text(tbb(i,1)+5,tbb(i,2)+5,num2str(i)); 
+    %    pause
+    % end
+
+    %plot bounding rectangle
+%     plot(bbx(:),bby(:),'color','red','linewidth',5);
+% 
+% Plots the sub rects
+%     hold on
+%         for i=1:sg_nx
+%            plot(rectangles{i}(:,1),rectangles{i}(:,2),'color','blue','linewidth',5);
+%         end
+%     hold off
+%     pause
         
-       plot(rectangles{i},'color','blue','linewidth',10);
-    end
-hold off
-pause
-        
+%----------------------------------------
     if  exist('p','var')==0
         if strcmp(viewpoint,'basin')
             p = patch( ...

@@ -177,25 +177,24 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
      
 
     
-    
     rectangles=cell(sg_nx,1);
     for i=1:sg_nx
         %first rect
        if i ==1
-           rectangles{1}=[[bbx(1),bby(1)];...%bottom left
+           rectangles{1}.vertex=[[bbx(1),bby(1)];...%bottom left
                          [x_mp.bottom(1).x,x_mp.bottom(1).y];...%bottom right mid point
                          [x_mp.top(1).x,x_mp.top(1).y];... %top right mid point
                          [bbx(4),bby(4)];...%top right
                          [bbx(1),bby(1)]]; 
 %        last rect
        else if i==sg_nx
-           rectangles{i}= [[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
+           rectangles{i}.vertex= [[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
                            [bbx(2),bby(2)];...
                            [bbx(3),bby(3)];...
                            [x_mp.top(i-1).x,x_mp.top(i-1).y];...
                            [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
            else
-             rectangles{i}=[[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
+             rectangles{i}.vertex=[[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
                            [x_mp.bottom(i).x,x_mp.bottom(i).y];...
                            [x_mp.top(i).x,x_mp.top(i).y];...
                            [x_mp.top(i-1).x,x_mp.top(i-1).y];...
@@ -264,7 +263,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
 % Plots the sub rects
 %     hold on
 %         for i=1:sg_nx
-%            plot(rectangles{i}(:,1),rectangles{i}(:,2),'color','blue','linewidth',5);
+%            plot(rectangles{i}.vertex(:,1),rectangles{i}.vertex(:,2),'color','blue','linewidth',5);
 %         end
 %     hold off
 %     pause

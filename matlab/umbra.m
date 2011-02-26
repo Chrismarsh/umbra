@@ -1,4 +1,4 @@
-% Copyright (c) 2008, Chris Marsh
+% Copyright (c) 2011, Chris Marsh
 % All rights reserved.
 % 
 % Redistribution and use in source and binary forms, with or without 
@@ -26,20 +26,19 @@
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 % POSSIBILITY OF SUCH DAMAGE.
 
-clear all
-close all
+function umbra()
 
 %basin or sun
 viewpoint='sun';
 
 load square_nodes_5m.csv
 
-x=square_nodes_5m(:,1);
+x=square_nodes_5m(:,1); %#ok<NODEF>
 y=square_nodes_5m(:,2);
 z=square_nodes_5m(:,3);
 
 load boundary_nodes.csv
-xb=boundary_nodes(:,1);
+xb=boundary_nodes(:,1); %#ok<NODEF>
 yb=boundary_nodes(:,2);
 zb=boundary_nodes(:,3);
 
@@ -103,7 +102,7 @@ end
 
 %triangle centers
 % triC=zeros(length(tri.Triangulation),3);
-% shadows=zeros(length(tri.Triangulation),1);
+ shadows=zeros(length(tri.Triangulation),1);
 % 
 % for i=1:length(tri.Triangulation)
 %      triC(i,1)=1/3*(x(tri.Triangulation(i,1))+x(tri.Triangulation(i,1))+x(tri.Triangulation(i,1)));
@@ -154,8 +153,8 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
 % +-> +x
 
     %only need 1:4 of these 5x1 vectors bbx, bby
-    [bbx,bby,area,per]=minboundrect(proj_x,proj_y);
-    tbb=[bbx(1:4),bby(1:4)]; %ignore the last point because it is out of order. Indecies follow the above naming convention
+    [bbx,bby,~,~]=minboundrect(proj_x,proj_y);
+
     
   
     m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
@@ -178,6 +177,8 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
 
     
     rectangles=cell(sg_nx,1);
+    
+    %build sub rectangles
     for i=1:sg_nx
         %first rect
        if i ==1
@@ -186,6 +187,8 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
                          [x_mp.top(1).x,x_mp.top(1).y];... %top right mid point
                          [bbx(4),bby(4)];...%top right
                          [bbx(1),bby(1)]]; 
+
+    
 %        last rect
        else if i==sg_nx
            rectangles{i}.vertex= [[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
@@ -201,45 +204,54 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
                            [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
            end
        end
-           
+        %initialize memory for triangle-rect association. Each index is an
+        %index into the triangulation
+        rectangles{i}.triangle_set=zeros(length(tri.Triangulation),1); %worst case....
+        %number of triangles in this rectangle
+        rectangles{i}.num_triangles=0;
+          
+    end
+     
+  
+   %loop over all the nodes to find which rectrangle(s) a triangle
+   %lies within
+    for j=1:length(tri.Triangulation)
+       for i=1:sg_nx
+           %eww.....but checks if any of the 3 vertices are in a rectangle
+           %sub OBB
+           if inRect(rectangles{i},proj_x(tri.Triangulation(j,1)),proj_y(tri.Triangulation(j,1))) > 0 ...
+                   || inRect(rectangles{i},proj_x(tri.Triangulation(j,2)),proj_y(tri.Triangulation(j,2))) > 0 ...
+                   || inRect(rectangles{i},proj_x(tri.Triangulation(j,3)),proj_y(tri.Triangulation(j,3))) > 0 
+              
+              rectangles{i}.num_triangles = rectangles{i}.num_triangles+1;
+              rectangles{i}.triangle_set(rectangles{i}.num_triangles) = j; %save the index into the triangulation      
+              
+              shadows(j)=i;
+           end
+       end
     end
     
-    
-%     new_tri=[tri.Triangulation(:,:) triC(:,3)];
-%     new_tri=sort(new_tri,4,'descend');
 %     fprintf('building shadows');
-%     parfor i=1:length(tri.Triangulation)
-%         for j=i:length(tri.Triangulation)
-%             %  z' of our ith triangle is behind our jth triangle
-%             if triC(i,3) < triC(j,3)
-%                if inside_triangle(triC(i,1:2), ...
-%                        [proj_x(tri.Triangulation(j,1)) proj_y(tri.Triangulation(j,1))],...
-%                        [proj_x(tri.Triangulation(j,2)) proj_y(tri.Triangulation(j,2))],...
-%                        [proj_x(tri.Triangulation(j,3)) proj_y(tri.Triangulation(j,3))]) == 1 %true
-%                   shadows(i)=1; %ith triangle is in shadow 
-%                end
-%             end
-%         end
-%         
+%     %for each rectangle
+%     for i=1:sg_nx
+%         %for each triangle in the rectangle
+%        for j=1:rectangles{i}.num_triangles 
+%            for k=1:rectangles{i}.num_triangles 
+%                 if j ~= k ...
+%                        && proj_z(tri.Triangulation(rectangles{i}.triangle_set(j),3)) > proj_z(tri.Triangulation(rectangles{i}.triangle_set(k),3)) % z>z_2
+%                     if inside_triangle(triC(j,1:2), ...
+%                        [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),1)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),1))],...
+%                        [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),2)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),2))],...
+%                        [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),3)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),3))]) == 1 %true
+%                    
+% %                      shadows(j)=1; %ith triangle is in shadow 
+%                     end
+%                 end
+%                     
+%            end
+%        end
 %     end
-
-% length(tri.Triangulation)
-%     for i=1:length(tri.Triangulation)
-%         for j=1:length(tri.Triangulation)
-%             %  z' of our ith triangle is behind our jth triangle
-%             if triC(i,3) < triC(j,3)
-%                if inside_triangle(triC(i,1:2), ...
-%                        [proj_x(tri.Triangulation(j,1)) proj_y(tri.Triangulation(j,1))],...
-%                        [proj_x(tri.Triangulation(j,2)) proj_y(tri.Triangulation(j,2))],...
-%                        [proj_x(tri.Triangulation(j,3)) proj_y(tri.Triangulation(j,3))]) == 1 %true
-%                   shadows(i)=1; %ith triangle is in shadow 
-%                end
-%             end
-%             j
-%             
-%         end 
-%         
-%     end
+    
     r=1;
     sun = [r*cos(E)*cos(A);r*cos(E)*sin(A);r*sin(E)];
 
@@ -250,17 +262,19 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
     
 %testing code that plots the rectangles
 % ------------------------------------------------'
+%     tbb=[bbx(1:4),bby(1:4)]; %ignore the last point because it is out of
+%     order. Indecies follow the above naming convention
 % Plots the sub rect points
-    % for i=1:4
-    %     hold on
-    %    plot(tbb(i,1),tbb(i,2),'o');text(tbb(i,1)+5,tbb(i,2)+5,num2str(i)); 
-    %    pause
-    % end
+%     for i=1:4
+%         hold on
+%        plot(tbb(i,1),tbb(i,2),'o');text(tbb(i,1)+5,tbb(i,2)+5,num2str(i)); 
+%        
+%     end
 
     %plot bounding rectangle
 %     plot(bbx(:),bby(:),'color','red','linewidth',5);
 % 
-% Plots the sub rects
+% % Plots the sub rects
 %     hold on
 %         for i=1:sg_nx
 %            plot(rectangles{i}.vertex(:,1),rectangles{i}.vertex(:,2),'color','blue','linewidth',5);
@@ -283,7 +297,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
             p = patch( ...
                 'Vertices',[proj_x(:) proj_y(:)], ...
                 'Faces', tri.Triangulation, ...
-                'facevertexcdata',proj_x(:),...
+                'facevertexcdata',shadows(:),...
                 'facecolor','flat',...
                 'edgecolor','black');
         end
@@ -293,7 +307,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
              set(p,'facevertexcdata',proj_z(:));
         else
             %for "as the sun"
-            set(p,'Vertices',[proj_x(:) proj_y(:) ],'facevertexcdata',proj_x(:));
+            set(p,'Vertices',[proj_x(:) proj_y(:) ],'facevertexcdata',shadows(:));
   
             axis tight
 
@@ -313,5 +327,6 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
    pause
 end
 hold off
+end
 
 

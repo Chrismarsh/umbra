@@ -77,7 +77,7 @@ hs=[];
 
 %spatial grid
 %number of cells in x direction
-sg_nx=3;
+sg_nx=7;
 
 if strcmp(viewpoint,'basin')
     hp=plot3(xb, yb, zb,'o','Color','black');

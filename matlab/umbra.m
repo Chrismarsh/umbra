@@ -132,7 +132,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         coord = K*coord;
         proj_x(i) = coord(1);
         proj_y(i) = coord(2);
-        proj_z(i) = coord(3);%should this be -coord(3) ?? -z axis ?? no...
+        proj_z(i) = coord(3);
     end
     
     %OBB computation 
@@ -155,8 +155,6 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
     %only need 1:4 of these 5x1 vectors bbx, bby
     [bbx,bby,~,~]=minboundrect(proj_x,proj_y);
 
-    
-  
     m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
     step=(bbx(3)-bbx(4))/sg_nx;
     for i=1:sg_nx
@@ -165,17 +163,12 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         
         x_mp.bottom(i).x=xpos.bottom;
         x_mp.bottom(i).y=m*(xpos.bottom-bbx(1))+bby(1); %2pt line eqn
-        
-        
+      
         x_mp.top(i).x=xpos.top;
         x_mp.top(i).y=m*(xpos.top-bbx(4))+bby(4); %2pt line eqn
         
-        plot(x_mp.bottom(i).x,x_mp.bottom(i).y,'o','color','blue')
-        plot(x_mp.top(i).x,x_mp.top(i).y,'o','color','blue')
     end
-     
-
-    
+        
     rectangles=cell(sg_nx,1);
     
     %build sub rectangles
@@ -225,7 +218,6 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
               
               rectangles{i}.num_triangles = rectangles{i}.num_triangles+1;
               rectangles{i}.triangle_set(rectangles{i}.num_triangles) = j; %save the index into the triangulation      
-              
               shadows(j)=i;
            end
        end
@@ -324,7 +316,8 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
     
     
     time = datestr(addtodate(datenum(time,'yyyy/mm/dd HH:MM:SS'),step_size,step_type),'yyyy/mm/dd HH:MM:SS');
-   pause
+%    
+break
 end
 hold off
 end

@@ -33,9 +33,9 @@
 function [ inside ] = inRect( Rect, px, py )
 
 inside=1;
-    for i=1:4
         y=py;
         x=px;
+    for i=1:4
         x0=Rect.vertex(i,1);
         y0=Rect.vertex(i,2);
         x1=Rect.vertex(i+1,1);

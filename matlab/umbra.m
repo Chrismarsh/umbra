@@ -77,7 +77,7 @@ hs=[];
 
 %spatial grid
 %number of cells in x direction
-sg_nx=7;
+sg_nx=3;
 
 if strcmp(viewpoint,'basin')
     hp=plot3(xb, yb, zb,'o','Color','black');
@@ -127,7 +127,6 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
     K = [cos(z0) sin(z0) 0; -cos(q0)*sin(z0) cos(q0)*cos(z0) sin(q0);sin(q0)*sin(z0) -cos(z0)*sin(q0) cos(q0)];
 
     for i = 1:num_nodes
-
         coord = [x(i); y(i); z(i)];
         coord = K*coord;
         proj_x(i) = coord(1);
@@ -208,7 +207,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
   
    %loop over all the nodes to find which rectrangle(s) a triangle
    %lies within
-    for j=1:length(tri.Triangulation)
+    for j=1:tri.size
        for i=1:sg_nx
            %eww.....but checks if any of the 3 vertices are in a rectangle
            %sub OBB

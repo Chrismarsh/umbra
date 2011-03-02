@@ -71,13 +71,19 @@ time = tstart;
 
 frame=1;
 
+%the triangulation
 tri=DelaunayTri(x,y);
-color=zeros(size(tri.Triangulation));
-hs=[];
+Triangle_set=cell(tri.size,1);
+    
+%     
+% color=zeros(size(tri.Triangulation));
+% hs=[];
 
 %spatial grid
 %number of cells in x direction
 sg_nx=3;
+%pre allocation
+rectangles=cell(sg_nx,1);
 
 if strcmp(viewpoint,'basin')
     hp=plot3(xb, yb, zb,'o','Color','black');
@@ -100,16 +106,26 @@ else
     set(gcf,'units','normalized','outerposition',[0 0 1 1]);
 end
 
-%triangle centers
-% triC=zeros(length(tri.Triangulation),3);
- shadows=zeros(length(tri.Triangulation),1);
-% 
-% for i=1:length(tri.Triangulation)
-%      triC(i,1)=1/3*(x(tri.Triangulation(i,1))+x(tri.Triangulation(i,1))+x(tri.Triangulation(i,1)));
-%      triC(i,2)=1/3*(y(tri.Triangulation(i,2))+y(tri.Triangulation(i,2))+y(tri.Triangulation(i,2)));
-%      triC(i,3)=1/3*(z(tri.Triangulation(i,3))+z(tri.Triangulation(i,3))+z(tri.Triangulation(i,3)));
-% end
+%triangluation
+%x,y,z,proj_x,proj_y,proj_z,triCx,triCy,triCz,shadow
+Triangulation=zeros(max(tri.size),9);
 
+% shadows=zeros(length(tri.Triangulation),1);
+
+
+
+%build the partial matrix
+for i=1:max(tri.size)
+    Triangulation(i,1)=x(tri.Triangulationi);
+    Triangulation(i,2)=y(i);
+    Triangulation(i,2)=z(i);
+    
+    centre = tri_center([Triangle_set{i}.x1 Triangle_set{i}.y1 Triangle_set{i}.z1],...
+                                                [Triangle_set{i}.x2 Triangle_set{i}.y2 Triangle_set{i}.z2],...
+                                                [Triangle_set{i}.x3 Triangle_set{i}.y3 Triangle_set{i}.z3],...
+                                                'circumcenter');
+    
+end
     
 while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS')
     
@@ -133,7 +149,29 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         proj_y(i) = coord(2);
         proj_z(i) = coord(3);
     end
-    
+        
+     for i=1:tri.size
+        Triangle_set{i}.x1=proj_x(tri.Triangulation(i,1));
+        Triangle_set{i}.y1=proj_y(tri.Triangulation(i,1));
+        Triangle_set{i}.z1=proj_z(tri.Triangulation(i,1));
+        
+        Triangle_set{i}.x2=proj_x(tri.Triangulation(i,2));
+        Triangle_set{i}.y2=proj_y(tri.Triangulation(i,2));
+        Triangle_set{i}.z2=proj_z(tri.Triangulation(i,2));
+        
+        Triangle_set{i}.x3=proj_x(tri.Triangulation(i,3));
+        Triangle_set{i}.y3=proj_y(tri.Triangulation(i,3));
+        Triangle_set{i}.z3=proj_z(tri.Triangulation(i,3));
+         
+        Triangle_set{i}.centre = tri_center([Triangle_set{i}.x1 Triangle_set{i}.y1 Triangle_set{i}.z1],...
+                                                [Triangle_set{i}.x2 Triangle_set{i}.y2 Triangle_set{i}.z2],...
+                                                [Triangle_set{i}.x3 Triangle_set{i}.y3 Triangle_set{i}.z3],...
+                                                'circumcenter');
+
+        fprintf('done...%f\n',i/max(tri.size)*100)
+       
+     end
+ 
     %OBB computation 
 %     -----------------------
     
@@ -168,7 +206,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         
     end
         
-    rectangles=cell(sg_nx,1);
+
     
     %build sub rectangles
     for i=1:sg_nx
@@ -207,6 +245,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
   
    %loop over all the nodes to find which rectrangle(s) a triangle
    %lies within
+   fprint('Calculating spatial segmentation\n')
     for j=1:tri.size
        for i=1:sg_nx
            %eww.....but checks if any of the 3 vertices are in a rectangle
@@ -217,31 +256,37 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
               
               rectangles{i}.num_triangles = rectangles{i}.num_triangles+1;
               rectangles{i}.triangle_set(rectangles{i}.num_triangles) = j; %save the index into the triangulation      
-              shadows(j)=i;
+%               shadows(j)=i;
            end
        end
     end
     
-%     fprintf('building shadows');
-%     %for each rectangle
-%     for i=1:sg_nx
-%         %for each triangle in the rectangle
-%        for j=1:rectangles{i}.num_triangles 
-%            for k=1:rectangles{i}.num_triangles 
-%                 if j ~= k ...
-%                        && proj_z(tri.Triangulation(rectangles{i}.triangle_set(j),3)) > proj_z(tri.Triangulation(rectangles{i}.triangle_set(k),3)) % z>z_2
-%                     if inside_triangle(triC(j,1:2), ...
-%                        [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),1)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),1))],...
-%                        [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),2)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),2))],...
-%                        [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),3)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),3))]) == 1 %true
-%                    
-% %                      shadows(j)=1; %ith triangle is in shadow 
-%                     end
-%                 end
-%                     
-%            end
-%        end
-%     end
+%     triangle_set{:}=sort(triangle_set
+    
+     fprintf('building shadows');
+     
+     %for each rectangle
+     for i=1:sg_nx
+        fprintf('Rectangle %i\n',i)
+        
+       %for each triangle in the rectangle
+       for j=1:rectangles{i}.num_triangles 
+           fprintf('... %f\n',j/rectangles{i}.num_triangles *100)
+           for k=1:rectangles{i}.num_triangles 
+                if j ~= k ...
+                       && proj_z(tri.Triangulation(rectangles{i}.triangle_set(j),3)) > proj_z(tri.Triangulation(rectangles{i}.triangle_set(k),3)) % z>z_2
+                    if inside_triangle(triC{j}, ...
+                       [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),1)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),1))],...
+                       [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),2)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),2))],...
+                       [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),3)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),3))]) == 1 %true
+                   
+                      shadows(j)=1; %ith triangle is in shadow 
+                    end
+                end
+                    
+           end
+       end
+    end
     
     r=1;
     sun = [r*cos(E)*cos(A);r*cos(E)*sin(A);r*sin(E)];

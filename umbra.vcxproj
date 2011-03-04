@@ -30,7 +30,6 @@
     <ClInclude Include="src\matlab_engine.h" />
     <ClInclude Include="src\triangle.h" />
     <ClInclude Include="src\triangulation.h" />
-    <ClInclude Include="src\vertex.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5035F651-E13F-481D-8B4F-55B53E39E95F}</ProjectGuid>

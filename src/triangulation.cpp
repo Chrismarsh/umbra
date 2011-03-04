@@ -4,6 +4,7 @@ void triangulation::create_delaunay(const std::vector<double>& x, const std::vec
 {
 	if(m_engine)
 	{
+
 		int num_nodes = x.size();
 
 		mxArray* xyz = mxCreateDoubleMatrix(num_nodes,3, mxREAL);
@@ -17,14 +18,18 @@ void triangulation::create_delaunay(const std::vector<double>& x, const std::vec
 			ptr[i*3+2] = z[i];	
 		}
 		m_engine->put("xyz",xyz);
-		m_engine->evaluate("tri=DelaunayTri(xyz(:,1),xyz(:,2)");
+		m_engine->evaluate("tri=DelaunayTri(xyz(:,1),xyz(:,2))");
 		
 		//clean up our temp array
 		mxDestroyArray(xyz);
 		xyz=NULL;
 		
+		//for some reason grabbing triangulation directly doesn't work so throw it in a temp var
+		m_engine->evaluate("t=tri.Triangulation");
 		//get our triangulation structure from matlab
-		mxArray* tri = m_engine->get("tri.Triangulation");
+		mxArray* tri = m_engine->get("t");
+		if(!tri)
+			throw std::exception(m_engine->get_last_error().c_str());
 
 		//will be n * 3
 		const mwSize* size = mxGetDimensions(tri);
@@ -40,4 +45,37 @@ void triangulation::create_delaunay(const std::vector<double>& x, const std::vec
 	
 
 	}
+}
+
+int triangulation::get_size()
+{
+	return m_size;
+}
+
+triangulation::triangulation( matlab* engine )
+{
+	m_engine = engine;
+	m_size = 0;
+}
+
+triangulation::~triangulation()
+{
+	std::vector<triangle*>::iterator it = m_triangles.begin();
+
+	for(; it != m_triangles.end(); it++)
+	{
+		delete *it;
+	}
+
+}
+
+std::vector<int> triangulation::get_tri( int t )
+{
+	std::vector<int> v;
+	
+	v.push_back(m_triangles[t]->get_vertex(0));
+	v.push_back(m_triangles[t]->get_vertex(1));
+	v.push_back(m_triangles[t]->get_vertex(2));
+
+	return v;
 }

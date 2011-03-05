@@ -33,7 +33,7 @@
 
 //matlab engine
 #include <engine.h>
-
+#include <armadillo>
 
 #include "matlab_engine.h"
 #include "triangle.h"
@@ -43,9 +43,9 @@ class triangulation
 public:
 	triangulation(matlab* engine);
 	~triangulation();
-	void create_delaunay(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& z );
+	void create_delaunay(arma::vec& x, arma::vec& y);
 	int get_size();
-	std::vector<int> get_tri(int t);
+	arma::uvec get_tri(int t);
 private:
 	//triangulation, stored as a list of indexes into the x,y,z data. This is like Matlab
 //	std::vector<std::vector<double> > m_tri;  //size * 3

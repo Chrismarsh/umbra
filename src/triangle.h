@@ -31,7 +31,6 @@
 
 #include <vector>
 
-#include "vertex.h"
 class triangle
 {
 public:

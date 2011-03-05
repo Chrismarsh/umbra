@@ -87,7 +87,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Program Files\MATLAB\R2010b\extern\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\libs\armadillo-1.1.6\include;C:\Program Files\MATLAB\R2010b\extern\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files\MATLAB\R2010b\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
     <ExecutablePath>C:\Program Files\MATLAB\R2010b\bin\win64;$(ExecutablePath)</ExecutablePath>
     <TargetName>$(ProjectName)_d</TargetName>
@@ -103,6 +103,8 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)\bin\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(Platform)-$(Configuration)\</IntDir>
+    <IncludePath>C:\Users\Chris\Documents\Masters\code\umbra\libs\armadillo-1.1.6\include;C:\Program Files\MATLAB\R2010b\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\MATLAB\R2010b\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

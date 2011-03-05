@@ -30,6 +30,10 @@
 #include <iostream>
 #include <string.h>
 #include <vector>
+#include <armadillo>
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include "matlab_engine.h"
 #include "graphics.h"
@@ -58,51 +62,103 @@ int main()
 			throw std::exception("Variable not found in Matlab workspace");
 
 		const mwSize* num_nodes = mxGetDimensions(square_nodes_5m);
+		int size = num_nodes[0];
+		//create matrix to hold our data
+		arma::mat xyz(size,3);
 
-		//store our spatial data
-		std::vector<double> x;
-		std::vector<double> y;
-		std::vector<double> z;
+		//store the rotated matrix data
+		arma::mat rot_domain(size,3);
 
+		//get the data we loaded
 		double* ptr = mxGetPr(square_nodes_5m);
-
-		//allocate data
-		x.resize(num_nodes[0]);
-		y.resize(num_nodes[0]);
-		z.resize(num_nodes[0]);
-
-		for (int i =0; i<num_nodes[0]; i++)
+		for (int i =0; i<size; i++)
 		{
-			x[i] = ptr[i*3+0];
-			y[i] = ptr[i*3+1];
-			z[i] = ptr[i*3+2];
+			//col major in ptr!!!
+			xyz(i,0) = ptr[i+0*size];
+			xyz(i,1) = ptr[i+1*size];
+			xyz(i,2) = ptr[i+2*size];
 		}
 		
+
 		//perform the triangulation
 		std::cout << "Creating triangulation..." <<std::endl;
 		triangulation* tri = new triangulation(engine);
-		tri->create_delaunay(x,y,z);
+		tri->create_delaunay(xyz.unsafe_col(0),xyz.unsafe_col(1));
 		std::cout <<"Finished!" <<std::endl;
 
+		//pretend this is the start of the time loop....
+
+		//get the solar position
+		//need to add UTC 7 to this
+		engine->evaluate("[Az El] = SolarAzEl('2010/10/01 20:00:00',50.960873, -115.187890,0);");
+		double Az = *(mxGetPr(engine->get("Az")));
+		double El = *(mxGetPr(engine->get("El")));
+
+		//euler rotation matrix K
+		arma::mat K; 
+
+		//convert to rads
+		double	A  = Az * M_PI/180;
+		double E  = El * M_PI/180;
+
+		//eqns (6) & (7) in Montero
+		double	z0 = M_PI-A;
+		double q0 = M_PI/2 - E;
+
+		K << cos(z0) << sin(z0) << 0 <<arma::endr
+			<< -cos(q0)*sin(z0) << cos(q0)*cos(z0) << sin(q0) << arma::endr
+			<< sin(q0)*sin(z0) << -cos(z0)*sin(q0) << cos(q0);
+
+		//perform the euler rotation
+		for(int i = 0; i<size;i++)
+		{
+			arma::vec coord(3);
+			coord(0) = xyz(i,0);
+			coord(1) = xyz(i,1);
+			coord(2) = xyz(i,2);
+
+			coord = K*coord;
+			rot_domain(i,0)=coord(0);
+			rot_domain(i,1)=coord(1);
+			rot_domain(i,2)=coord(2);
+
+		}
+		
 		std::cout << "Sending back to matlab..." <<std::endl;
-		mxArray* domain = mxCreateDoubleMatrix(tri->get_size(),3,mxREAL);
-		double* domain_ptr = mxGetPr(domain);
+		mxArray*  mxTri = mxCreateDoubleMatrix(tri->get_size(),3,mxREAL);
+		double* mxTri_ptr = mxGetPr(mxTri);
 
 		//send back to matlab for testing
 		for (int i = 0; i<tri->get_size();i++)
 		{
-			std::vector<int> v = tri->get_tri(i);
-			domain_ptr[i*3+0] = v[0];
-			domain_ptr[i*3+1] = v[1];
-			domain_ptr[i*3+2] = v[2];
+			arma::uvec v = tri->get_tri(i);
+
+			int v1 = v[0];
+			int v2 = v[1];
+			int v3 = v[3];
+
+			mxTri_ptr[i+0*tri->get_size()] = v[0];
+			mxTri_ptr[i+1*tri->get_size()] = v[1];
+			mxTri_ptr[i+2*tri->get_size()] = v[2];
 		}
 
-		engine->put("new_tri",domain);
+		engine->put("tri",mxTri);
+
+		mxArray*  mxDomain = mxCreateDoubleMatrix(xyz.n_rows,3,mxREAL);
+		double*   mxDomain_ptr = mxGetPr(mxDomain);
+		//send back to matlab for testing
+		for (int i = 0; i<xyz.n_rows;i++)
+		{
+			mxDomain_ptr[i+0*xyz.n_rows] = xyz(i,0);
+			mxDomain_ptr[i+1*xyz.n_rows] = xyz(i,1);
+			mxDomain_ptr[i+2*xyz.n_rows] = xyz(i,2);
+		}
+		engine->put("mxDomain",mxDomain);
 		std::cout << "Finished!" << std::endl;
 
 
 
-		int handle = gfx->plot_patch("[square_nodes_5m(:,1) square_nodes_5m(:,2) square_nodes_5m(:,3)]","new_tri","square_nodes_5m(:,3)");
+		int handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","mxDomain(:,3)");
 		std::cout << "Plotted with handle " << handle << std::endl;
 
 		std::string lol;

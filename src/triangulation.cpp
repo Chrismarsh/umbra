@@ -29,31 +29,32 @@
 
 #include "triangulation.h"
 
-void triangulation::create_delaunay(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& z )
+void triangulation::create_delaunay( arma::vec& x, arma::vec& y )
 {
 	if(m_engine)
 	{
+	
+		int num_nodes = x.n_rows;
 
-		int num_nodes = x.size();
-
-		mxArray* xyz = mxCreateDoubleMatrix(num_nodes,3, mxREAL);
-		double* ptr = mxGetPr(xyz);
+		mxArray* xy = mxCreateDoubleMatrix(num_nodes,3, mxREAL);
+		double* ptr = mxGetPr(xy);
 
 		//create temp arrays to send to matlab
-		for (int i=0;i<num_nodes;i++)
+		for (int row=0;row<num_nodes;row++)
 		{
-			ptr[i*3+0] = x[i];
-			ptr[i*3+1] = y[i];
-			ptr[i*3+2] = z[i];	
+			//matlab is col major storage	
+			ptr[row+0*num_nodes] = x(row);
+			ptr[row+1*num_nodes] = y(row);
 		}
-		m_engine->put("xyz",xyz);
-		m_engine->evaluate("tri=DelaunayTri(xyz(:,1),xyz(:,2))");
-		
+		m_engine->put("xy",xy);
+		m_engine->evaluate("tri=DelaunayTri(xy(:,1),xy(:,2))");
+		m_engine->evaluate("clear xy");
 		//clean up our temp array
-		mxDestroyArray(xyz);
-		xyz=NULL;
+		mxDestroyArray(xy);
+		xy=NULL;
+		ptr=NULL;
 		
-		//for some reason grabbing triangulation directly doesn't work so throw it in a temp var
+		//change this later to the struct lookup
 		m_engine->evaluate("t=tri.Triangulation");
 		//get our triangulation structure from matlab
 		mxArray* tri = m_engine->get("t");
@@ -62,18 +63,17 @@ void triangulation::create_delaunay(const std::vector<double>& x, const std::vec
 
 		//will be n * 3
 		const mwSize* size = mxGetDimensions(tri);
-		m_size = size[0]; //first element is the # of rows
+ 		m_size = size[0]; //first element is the # of rows
 		
 		double* t = mxGetPr(tri);
 
 		for (int i = 0;i<m_size; i++)
 		{
-				int v1=int(t[i*3+0]);
-				int v2 = int(t[i*3+1]);
-				int v3 = int(t[i*3+2]);
-
+			//col major lookup!!!
+				int v1 = int(t[i+0*m_size]);
+				int v2 = int(t[i+1*m_size]);
+				int v3 = int(t[i+2*m_size]);
 				m_triangles.push_back(new triangle(v1,v2,v3));
-				//triangle centres?S
 		}
 	
 
@@ -102,13 +102,13 @@ triangulation::~triangulation()
 
 }
 
-std::vector<int> triangulation::get_tri( int t )
+arma::uvec triangulation::get_tri( int t )
 {
-	std::vector<int> v;
+	arma::uvec v(3);
 	
-	v.push_back(m_triangles[t]->get_vertex(0));
-	v.push_back(m_triangles[t]->get_vertex(1));
-	v.push_back(m_triangles[t]->get_vertex(2));
+	v(0) = m_triangles[t]->get_vertex(0);
+	v(1) = m_triangles[t]->get_vertex(1);
+	v(2) = m_triangles[t]->get_vertex(2);
 
 	return v;
 }

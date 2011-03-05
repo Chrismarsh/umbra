@@ -40,8 +40,8 @@ void matlab::stop()
 {
 	if(m_engine)
 	{
-		if (engEvalString(m_engine, "close;") == 1)
-			throw std::exception("Command failed");
+		if (engEvalString(m_engine, "close") == 1)
+			throw std::exception(get_last_error().c_str());
 	}
 }
 
@@ -50,7 +50,7 @@ void matlab::evaluate( std::string command )
 	if(m_engine)
 	{
 		if (engEvalString(m_engine, command.c_str()) ==1 )
-			throw std::exception("Command failed");
+			throw std::exception(get_last_error().c_str());
 	}
 	else
 	{
@@ -63,7 +63,7 @@ void matlab::put( std::string name, mxArray* var )
 	if(m_engine)
 	{
 		if( engPutVariable(m_engine, name.c_str(), var) == 1)
-			throw std::exception("Command failed");
+			throw std::exception(get_last_error().c_str());
 	}
 	else
 	{
@@ -98,7 +98,8 @@ void matlab::set_working_dir( std::string dir )
 {
 	if(m_engine)
 	{
-		engEvalString(m_engine, (std::string("cd '")+dir+std::string("'")).c_str());
+		if (engEvalString(m_engine, (std::string("cd '")+dir+std::string("'")).c_str())==1)
+			throw std::exception(get_last_error().c_str());
 	}
 	else
 	{
@@ -146,4 +147,11 @@ std::string matlab::get_last_error()
 	}
 }
 
+void matlab::copy_doublematrix_to( std::string name, const arma::mat& mat )
+{
+	mxArray*  mx = mxCreateDoubleMatrix(mat.n_rows, mat.n_cols, mxREAL);
+	memcpy(mxGetPr(mx),mat.memptr(),mat.n_elem*sizeof(double));
+	put(name,mx);
+	mxDestroyArray(mx);
+}
 

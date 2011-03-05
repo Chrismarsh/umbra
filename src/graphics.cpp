@@ -34,16 +34,16 @@
 //faces should be in the form  tri.Triangulation
 int graphics::plot_patch( std::string vertices, std::string faces, std::string face_data )
 {
-	std::string command = std::string("path_handle = patch('Vertices',") + 	vertices + 
+	std::string command = std::string("patch_handle = patch('Vertices',") + 	vertices + 
 		std::string(",'Faces',") + 	faces +
 		std::string(",'facevertexcdata',") + face_data +
 		std::string(",'facecolor','flat', 'edgecolor','black');");
 	m_engine->evaluate(command.c_str());
 
-	mxArray* handle =  m_engine->get("path_handle");
+	mxArray* handle =  m_engine->get("patch_handle");
 
 	if(handle)
-		return *mxGetPr(handle);
+		return mxGetScalar(handle);
 	else
 		return NULL;
 }

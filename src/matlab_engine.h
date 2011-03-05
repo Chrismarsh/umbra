@@ -34,6 +34,7 @@
 #include <direct.h> // for getcwd
 #include <stdlib.h>// for MAX_PATH
 #include <string>
+#include <armadillo>
 
 class matlab
 {
@@ -44,6 +45,9 @@ public:
 	void put(std::string name, mxArray* var );
 	mxArray* get(std::string name);
 	void evaluate(std::string command);
+
+	//copies an existing array to matlab with the speicifed name
+	void copy_doublematrix_to(std::string name, const arma::mat& mat);
 
 	//set working directory for matlab engine to a specified directory
 	void set_working_dir(std::string dir);

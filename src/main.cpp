@@ -32,6 +32,8 @@
 #include <vector>
 #include <armadillo>
 
+#include <conio.h>
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -61,22 +63,21 @@ int main()
 		if(!square_nodes_5m)
 			throw std::exception("Variable not found in Matlab workspace");
 
-		const mwSize* num_nodes = mxGetDimensions(square_nodes_5m);
-		int size = num_nodes[0];
+		int num_nodes = mxGetM(square_nodes_5m);
 		//create matrix to hold our data
-		arma::mat xyz(size,3);
+		arma::mat xyz(num_nodes,3);
 
 		//store the rotated matrix data
-		arma::mat rot_domain(size,3);
+		arma::mat rot_domain(num_nodes,3);
 
 		//get the data we loaded
 		double* ptr = mxGetPr(square_nodes_5m);
-		for (int i =0; i<size; i++)
+		for (int i =0; i<num_nodes; i++)
 		{
 			//col major in ptr!!!
-			xyz(i,0) = ptr[i+0*size];
-			xyz(i,1) = ptr[i+1*size];
-			xyz(i,2) = ptr[i+2*size];
+			xyz(i,0) = ptr[i+0*num_nodes];
+			xyz(i,1) = ptr[i+1*num_nodes];
+			xyz(i,2) = ptr[i+2*num_nodes];
 		}
 		
 
@@ -86,7 +87,7 @@ int main()
 		tri->create_delaunay(xyz.unsafe_col(0),xyz.unsafe_col(1));
 		std::cout <<"Finished!" <<std::endl;
 
-		//pretend this is the start of the time loop....
+//pretend this is the start of the time loop....
 
 		//get the solar position
 		//need to add UTC 7 to this
@@ -110,7 +111,7 @@ int main()
 			<< sin(q0)*sin(z0) << -cos(z0)*sin(q0) << cos(q0);
 
 		//perform the euler rotation
-		for(int i = 0; i<size;i++)
+		for(int i = 0; i<num_nodes;i++)
 		{
 			arma::vec coord(3);
 			coord(0) = xyz(i,0);
@@ -129,13 +130,11 @@ int main()
 		double* mxTri_ptr = mxGetPr(mxTri);
 
 		//send back to matlab for testing
+
+		//create the triangulation array
 		for (int i = 0; i<tri->get_size();i++)
 		{
 			arma::uvec v = tri->get_tri(i);
-
-			int v1 = v[0];
-			int v2 = v[1];
-			int v3 = v[3];
 
 			mxTri_ptr[i+0*tri->get_size()] = v[0];
 			mxTri_ptr[i+1*tri->get_size()] = v[1];
@@ -144,26 +143,20 @@ int main()
 
 		engine->put("tri",mxTri);
 
-		mxArray*  mxDomain = mxCreateDoubleMatrix(xyz.n_rows,3,mxREAL);
-		double*   mxDomain_ptr = mxGetPr(mxDomain);
-		//send back to matlab for testing
-		for (int i = 0; i<xyz.n_rows;i++)
-		{
-			mxDomain_ptr[i+0*xyz.n_rows] = xyz(i,0);
-			mxDomain_ptr[i+1*xyz.n_rows] = xyz(i,1);
-			mxDomain_ptr[i+2*xyz.n_rows] = xyz(i,2);
-		}
-		engine->put("mxDomain",mxDomain);
+		engine->copy_doublematrix_to("mxDomain",xyz);
+		engine->copy_doublematrix_to("mxRot",rot_domain);
+
 		std::cout << "Finished!" << std::endl;
 
+		//int handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","mxDomain(:,3)");
+		int handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","mxRot(:,3)");
 
-
-		int handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","mxDomain(:,3)");
 		std::cout << "Plotted with handle " << handle << std::endl;
 
 		std::string lol;
-		std::cout << "Finished plotting...hopefully. Press [enter]." <<std::endl;
-		std::cin >> lol;
+		std::cout << "Finished plotting...hopefully. Press the anykey to exit" <<std::endl;
+
+		getch();
 
 		engine->stop();
 	}

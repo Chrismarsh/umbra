@@ -30,7 +30,7 @@
 #pragma once
 
 #include <string>
-
+#include <boost/lexical_cast.hpp>
 #include "matlab_engine.h"
 
 class graphics
@@ -40,7 +40,9 @@ public:
 	graphics(matlab *engine);
 	~graphics();
 
-	int  plot_patch(std::string vertices, std::string faces, std::string face_data);
+	double plot_patch(std::string vertices, std::string faces, std::string face_data);
+	double update_patch(double handle, std::string vertices, std::string face_data);
+	double add_title(std::string title, int fontsize = 14);
 
 private:
 	matlab* m_engine;

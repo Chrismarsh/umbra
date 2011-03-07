@@ -30,17 +30,27 @@
 #include <iostream>
 #include <string.h>
 #include <vector>
-#include <armadillo>
+#include <sstream>
 
 #include <conio.h>
 
+#include <armadillo>
+
+#include <windows.h>
+
 #define _USE_MATH_DEFINES
 #include <math.h>
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+
+
 
 #include "matlab_engine.h"
 #include "graphics.h"
 #include "triangulation.h"
 
+using namespace boost;
 int main()
 
 {
@@ -87,44 +97,6 @@ int main()
 		tri->create_delaunay(xyz.unsafe_col(0),xyz.unsafe_col(1));
 		std::cout <<"Finished!" <<std::endl;
 
-//pretend this is the start of the time loop....
-
-		//get the solar position
-		//need to add UTC 7 to this
-		engine->evaluate("[Az El] = SolarAzEl('2010/10/01 20:00:00',50.960873, -115.187890,0);");
-		double Az = *(mxGetPr(engine->get("Az")));
-		double El = *(mxGetPr(engine->get("El")));
-
-		//euler rotation matrix K
-		arma::mat K; 
-
-		//convert to rads
-		double	A  = Az * M_PI/180;
-		double E  = El * M_PI/180;
-
-		//eqns (6) & (7) in Montero
-		double	z0 = M_PI-A;
-		double q0 = M_PI/2 - E;
-
-		K << cos(z0) << sin(z0) << 0 <<arma::endr
-			<< -cos(q0)*sin(z0) << cos(q0)*cos(z0) << sin(q0) << arma::endr
-			<< sin(q0)*sin(z0) << -cos(z0)*sin(q0) << cos(q0);
-
-		//perform the euler rotation
-		for(int i = 0; i<num_nodes;i++)
-		{
-			arma::vec coord(3);
-			coord(0) = xyz(i,0);
-			coord(1) = xyz(i,1);
-			coord(2) = xyz(i,2);
-
-			coord = K*coord;
-			rot_domain(i,0)=coord(0);
-			rot_domain(i,1)=coord(1);
-			rot_domain(i,2)=coord(2);
-
-		}
-		
 		std::cout << "Sending back to matlab..." <<std::endl;
 		mxArray*  mxTri = mxCreateDoubleMatrix(tri->get_size(),3,mxREAL);
 		double* mxTri_ptr = mxGetPr(mxTri);
@@ -142,28 +114,142 @@ int main()
 		}
 
 		engine->put("tri",mxTri);
-
 		engine->copy_doublematrix_to("mxDomain",xyz);
-		engine->copy_doublematrix_to("mxRot",rot_domain);
 
-		std::cout << "Finished!" << std::endl;
+		//start up time
+		posix_time::ptime time (gregorian::date(2011,gregorian::Mar,6), 
+							posix_time::hours(6)); //start at 6am
+		
+		posix_time::ptime end_time (gregorian::date(2011,gregorian::Mar,6), 
+			posix_time::hours(18)); //end at 6pm
 
-		//int handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","mxDomain(:,3)");
-		int handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","mxRot(:,3)");
+		//time step
+		posix_time::time_duration dt = posix_time::minutes(15);
 
-		std::cout << "Plotted with handle " << handle << std::endl;
+		//UTC offset. Don't know how to use datetime's UTC converter yet....
+		posix_time::time_duration UTC_offset = posix_time::hours(7);
+		
+		posix_time::time_facet* facet =new posix_time::time_facet("%Y/%m/%d %H:%M:%S");
+		std::stringstream ss;
 
-		std::string lol;
-		std::cout << "Finished plotting...hopefully. Press the anykey to exit" <<std::endl;
+		ss.imbue(std::locale(ss.getloc(),facet));
+		
+		//setup the plot
+		engine->evaluate("ff=figure; set(gcf,'units','normalized','outerposition',[0 0 1 1]);");
+		engine->evaluate("set(ff,'Renderer','OpenGL')");
 
-		getch();
+		std::string viewpoint = "sun";
+		//for as basin
+		if(viewpoint == "basin")
+			engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
+		
 
+		//plot handle
+		double handle=-1.0;
+		//title handle
+		double ht = -1.0;
+
+		while (time != end_time)
+		{
+			ss.str("");
+			ss << time;
+			std::cout << "Time: " << ss.str() << std::endl;
+
+			posix_time::ptime temp_time = time + UTC_offset;
+			ss.str("");
+			ss << temp_time;
+
+			//get the solar position
+			//need to add UTC 7 to this
+			engine->evaluate(std::string("[Az El] = SolarAzEl('") +
+										ss.str() + std::string("'") +
+										std::string(",50.960873, -115.187890,0);"));
+
+			//holy LOLs. This is dangerous.
+			double Az = *(mxGetPr(engine->get("Az")));
+			double El = *(mxGetPr(engine->get("El")));
+
+			//euler rotation matrix K
+			arma::mat K; 
+
+			//convert to rads
+			double	A  = Az * M_PI/180;
+			double E  = El * M_PI/180;
+
+			if(E < 0)
+				goto skip;
+
+			//eqns (6) & (7) in Montero
+			double	z0 = M_PI-A;
+			double q0 = M_PI/2 - E;
+
+			K   << cos(z0)          << sin(z0)          << 0       <<arma::endr
+				<< -cos(q0)*sin(z0) << cos(q0)*cos(z0)  << sin(q0) << arma::endr
+				<< sin(q0)*sin(z0)  << -cos(z0)*sin(q0) << cos(q0);
+
+			//perform the euler rotation
+			for(int i = 0; i<num_nodes;i++)
+			{
+				arma::vec coord(3);
+				coord(0) = xyz(i,0);
+				coord(1) = xyz(i,1);
+				coord(2) = xyz(i,2);
+
+				coord = K*coord;
+				rot_domain(i,0)=coord(0);
+				rot_domain(i,1)=coord(1);
+				rot_domain(i,2)=coord(2);
+
+			}
+
+			engine->copy_doublematrix_to("mxRot",rot_domain);
+
+
+			if(viewpoint=="basin")
+			{
+				//for basin view
+				engine->copy_doublematrix_to("mxRot",rot_domain);
+				if(handle == -1)
+					handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","mxRot(:,3)");
+				else
+					handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","mxRot(:,3)");
+			}
+			else
+			{
+				//as sun
+				if(handle == -1)
+					handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","mxRot(:,3)");
+				else
+					handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","mxRot(:,3)");
+				engine->evaluate("axis tight");
+
+			}
+					
+
+			//update time w/o UTC offset.
+			ss.str("");
+			ss << time;			
+		 			
+			ht = gfx->add_title(ss.str());
+			
+			
+
+			//_getch();
+			Sleep(50);
+
+skip:
+			time = time + dt;
+		}
+	
+
+		_getch();
 		engine->stop();
 	}
 	catch(std::exception e)
 	{
 		std::cout << "Failure with error: " << e.what() << std::endl;
 	}
+	
 	
 	return 0;
 }

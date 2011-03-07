@@ -53,7 +53,7 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y )
 		mxDestroyArray(xy);
 		xy=NULL;
 		ptr=NULL;
-		
+		 
 		//change this later to the struct lookup
 		m_engine->evaluate("t=tri.Triangulation");
 		//get our triangulation structure from matlab
@@ -80,7 +80,7 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y )
 	}
 }
 
-int triangulation::get_size()
+size_t triangulation::get_size()
 {
 	return m_size;
 }

@@ -49,7 +49,11 @@ void matlab::evaluate( std::string command )
 {
 	if(m_engine)
 	{
-		if (engEvalString(m_engine, command.c_str()) ==1 )
+		engEvalString(m_engine,"lasterror('reset')");
+		engEvalString(m_engine, command.c_str());
+
+		std::string err = get_last_error().c_str();
+		if (err != "")
 			throw std::exception(get_last_error().c_str());
 	}
 	else
@@ -124,7 +128,7 @@ std::string matlab::get_last_error()
 		// get the struct
 		mxArray *err = engGetVariable(m_engine,"myErr");
 		char str[512];
-		if(mxIsStruct(err))
+		if(err && mxIsStruct(err) )
 		{
 			// get the error message string field
 			mxArray *errStr = mxGetField(err,0,"message");

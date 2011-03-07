@@ -32,7 +32,7 @@
 //returns the handle from matlab
 //vertices should be in the form [x(:) y(:) z(:)]
 //faces should be in the form  tri.Triangulation
-int graphics::plot_patch( std::string vertices, std::string faces, std::string face_data )
+double graphics::plot_patch( std::string vertices, std::string faces, std::string face_data )
 {
 	std::string command = std::string("patch_handle = patch('Vertices',") + 	vertices + 
 		std::string(",'Faces',") + 	faces +
@@ -43,12 +43,32 @@ int graphics::plot_patch( std::string vertices, std::string faces, std::string f
 	mxArray* handle =  m_engine->get("patch_handle");
 
 	if(handle)
-		return mxGetScalar(handle);
+		return (mxGetScalar(handle));
 	else
-		return NULL;
+		return -1;
 }
 
 graphics::graphics( matlab *engine )
 {
 	m_engine = engine;
+}
+
+double graphics::update_patch( double handle, std::string vertices, std::string face_data )
+{
+	std::string command = std::string("set(")+ boost::lexical_cast<std::string,double>(handle) + std::string(",'Vertices',") + vertices  + std::string(",'facevertexcdata',") + face_data + std::string(")");
+	m_engine->evaluate(command.c_str());
+	//m_engine->evaluate("refreshdata");
+	mxArray* h =  m_engine->get("patch_handle");
+
+	return (mxGetScalar(h));
+
+}
+
+double graphics::add_title( std::string title, int fontsize /*= 14*/ )
+{
+	m_engine->evaluate("if exist('ht','var')==1 delete(ht.th); end");
+	std::string command = std::string("ht = mtit('") + title + std::string("','fontsize',") + boost::lexical_cast<std::string,int>(fontsize) + std::string(")");
+	m_engine->evaluate(command);
+	mxArray* ht =  m_engine->get("ht");
+	return (mxGetScalar(ht));
 }

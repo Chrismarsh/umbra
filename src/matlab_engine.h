@@ -36,18 +36,27 @@
 #include <string>
 #include <armadillo>
 
+#include <boost/lexical_cast.hpp>
+
 class matlab
 {
 public:
 	matlab();
 	~matlab();
 
-	void put(std::string name, mxArray* var );
-	mxArray* get(std::string name);
+	
+	
 	void evaluate(std::string command);
 
-	//copies an existing array to matlab with the speicifed name
-	void copy_doublematrix_to(std::string name, const arma::mat& mat);
+	void put(std::string name, mxArray* var );
+	void put_double_matrix(std::string name, const arma::mat* mat);//copies an existing array to matlab with the specified name
+	void put_double_vector(std::string name, const arma::vec* vec);
+	
+	mxArray* get(std::string name);
+	//only returns a m x n matrix
+	arma::mat* get_double_matrix( std::string name);//for the moment let the client handle the memory 
+	arma::vec* get_double_vector(std::string name);//for the moment let the client handle the memory 
+	double get_scaler(std::string name);
 
 	//set working directory for matlab engine to a specified directory
 	void set_working_dir(std::string dir);

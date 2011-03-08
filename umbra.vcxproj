@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\bounding_rect.cpp" />
     <ClCompile Include="src\graphics.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\matlab_engine.cpp" />
@@ -26,6 +27,7 @@
     <ClCompile Include="src\triangulation.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\bounding_rect.h" />
     <ClInclude Include="src\graphics.h" />
     <ClInclude Include="src\matlab_engine.h" />
     <ClInclude Include="src\triangle.h" />

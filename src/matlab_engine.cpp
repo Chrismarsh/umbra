@@ -54,7 +54,7 @@ void matlab::evaluate( std::string command )
 
 		std::string err = get_last_error().c_str();
 		if (err != "")
-			throw std::exception(get_last_error().c_str());
+			throw std::exception( (std::string(__FILE__) + std::string(":") + boost::lexical_cast<std::string,int>(__LINE__) + std::string(":") + get_last_error() + std::string("\nCommand: ") + command).c_str());
 	}
 	else
 	{
@@ -80,7 +80,12 @@ mxArray* matlab::get( std::string name )
 
 		if(m_engine)
 		{
-			return engGetVariable(m_engine, name.c_str());
+			mxArray* temp = engGetVariable(m_engine, name.c_str());
+			if (!temp)
+				throw std::exception((std::string("Variable \"") + name + std::string("\" not found")).c_str());
+			else
+				return temp;
+
 		}
 		else
 		{
@@ -151,10 +156,69 @@ std::string matlab::get_last_error()
 	}
 }
 
-void matlab::copy_doublematrix_to( std::string name, const arma::mat& mat )
+void matlab::put_double_matrix( std::string name, const arma::mat* mat )
 {
-	mxArray*  mx = mxCreateDoubleMatrix(mat.n_rows, mat.n_cols, mxREAL);
-	memcpy(mxGetPr(mx),mat.memptr(),mat.n_elem*sizeof(double));
+	mxArray*  mx = mxCreateDoubleMatrix(mat->n_rows, mat->n_cols, mxREAL);
+	memcpy(mxGetPr(mx),mat->memptr(),mat->n_elem*sizeof(double));
+	put(name,mx);
+	mxDestroyArray(mx);
+}
+
+arma::mat* matlab::get_double_matrix( std::string name)
+{
+	mxArray* mx = get(name);
+
+	if(!mx)
+	{
+		return NULL;
+	}
+
+	arma::mat*  out_matrix = new arma::mat(mxGetM(mx),mxGetN(mx));
+
+	memcpy(out_matrix->memptr(),mxGetPr(mx),out_matrix->n_elem*sizeof(double));
+
+	mxDestroyArray(mx);
+
+	return out_matrix;
+
+}
+
+arma::vec* matlab::get_double_vector( std::string name )
+{
+	mxArray* mx = get(name);
+
+	if(!mx)
+	{
+		return NULL;
+	}
+
+	double M = mxGetM(mx);
+	double N = mxGetN(mx);
+
+	arma::vec*  out_vec = new arma::vec(mxGetM(mx));
+
+
+	memcpy(out_vec->memptr(),mxGetPr(mx),out_vec->n_elem*sizeof(double));
+
+	mxDestroyArray(mx);
+
+	return out_vec;
+
+}
+
+double matlab::get_scaler( std::string name )
+{
+	if(m_engine)
+	{
+		return *(mxGetPr(get(name)));
+	}
+
+}
+
+void matlab::put_double_vector( std::string name, const arma::vec* vec )
+{
+	mxArray*  mx = mxCreateDoubleMatrix(vec->n_rows, 1, mxREAL);
+	memcpy(mxGetPr(mx),vec->memptr(),vec->n_elem*sizeof(double));
 	put(name,mx);
 	mxDestroyArray(mx);
 }

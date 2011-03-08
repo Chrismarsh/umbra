@@ -49,6 +49,7 @@
 #include "matlab_engine.h"
 #include "graphics.h"
 #include "triangulation.h"
+#include "bounding_rect.h"
 
 using namespace boost;
 int main()
@@ -68,42 +69,27 @@ int main()
 		std::cout << "Loading data" << std::endl;
 		engine->evaluate("load square_nodes_5m.csv");
 
-		mxArray* square_nodes_5m = engine->get("square_nodes_5m");
+		arma::mat* xyz = engine->get_double_matrix("square_nodes_5m");
 
-		if(!square_nodes_5m)
-			throw std::exception("Variable not found in Matlab workspace");
+		if(!xyz)
+			throw std::exception(engine->get_last_error().c_str());
 
-		int num_nodes = mxGetM(square_nodes_5m);
-		//create matrix to hold our data
-		arma::mat xyz(num_nodes,3);
-
-		//store the rotated matrix data
+		int num_nodes = xyz->n_rows;
 		arma::mat rot_domain(num_nodes,3);
-
-		//get the data we loaded
-		double* ptr = mxGetPr(square_nodes_5m);
-		for (int i =0; i<num_nodes; i++)
-		{
-			//col major in ptr!!!
-			xyz(i,0) = ptr[i+0*num_nodes];
-			xyz(i,1) = ptr[i+1*num_nodes];
-			xyz(i,2) = ptr[i+2*num_nodes];
-		}
-		
 
 		//perform the triangulation
 		std::cout << "Creating triangulation..." <<std::endl;
 		triangulation* tri = new triangulation(engine);
-		tri->create_delaunay(xyz.unsafe_col(0),xyz.unsafe_col(1));
+		tri->create_delaunay(xyz->unsafe_col(0),xyz->unsafe_col(1));
 		std::cout <<"Finished!" <<std::endl;
 
+
+//send back to matlab for testing
 		std::cout << "Sending back to matlab..." <<std::endl;
 		mxArray*  mxTri = mxCreateDoubleMatrix(tri->get_size(),3,mxREAL);
 		double* mxTri_ptr = mxGetPr(mxTri);
 
-		//send back to matlab for testing
-
-		//create the triangulation array
+		
 		for (int i = 0; i<tri->get_size();i++)
 		{
 			arma::uvec v = tri->get_tri(i);
@@ -114,7 +100,9 @@ int main()
 		}
 
 		engine->put("tri",mxTri);
-		engine->copy_doublematrix_to("mxDomain",xyz);
+		engine->put_double_matrix("mxDomain",xyz);
+		mxDestroyArray(mxTri);
+		mxTri_ptr = NULL;
 
 		//start up time
 		posix_time::ptime time (gregorian::date(2011,gregorian::Mar,6), 
@@ -129,9 +117,9 @@ int main()
 		//UTC offset. Don't know how to use datetime's UTC converter yet....
 		posix_time::time_duration UTC_offset = posix_time::hours(7);
 		
+		//set the format
 		posix_time::time_facet* facet =new posix_time::time_facet("%Y/%m/%d %H:%M:%S");
 		std::stringstream ss;
-
 		ss.imbue(std::locale(ss.getloc(),facet));
 		
 		//setup the plot
@@ -191,9 +179,9 @@ int main()
 			for(int i = 0; i<num_nodes;i++)
 			{
 				arma::vec coord(3);
-				coord(0) = xyz(i,0);
-				coord(1) = xyz(i,1);
-				coord(2) = xyz(i,2);
+				coord(0) = (*xyz)(i,0);
+				coord(1) = (*xyz)(i,1);
+				coord(2) = (*xyz)(i,2);
 
 				coord = K*coord;
 				rot_domain(i,0)=coord(0);
@@ -202,28 +190,45 @@ int main()
 
 			}
 
-			engine->copy_doublematrix_to("mxRot",rot_domain);
+			engine->put_double_matrix("mxRot",&rot_domain);
 
-
-			if(viewpoint=="basin")
+			//build bounding rect
+			engine->evaluate("[bbx,bby,~,~]=minboundrect(mxRot(:,1),mxRot(:,2));");
+			arma::vec* bbx = engine->get_double_vector("bbx");
+			arma::vec* bby = engine->get_double_vector("bby");
+			gfx->hold_on();
+			gfx->plot_line(bbx,bby,"'color','red'");
+			bounding_rect* BBR = new bounding_rect(bbx,bby,3);
+			
+			for (int i = 0; i<BBR->n_segments;i++)
 			{
-				//for basin view
-				engine->copy_doublematrix_to("mxRot",rot_domain);
-				if(handle == -1)
-					handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","mxRot(:,3)");
-				else
-					handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","mxRot(:,3)");
+				
+				gfx->plot_line(&(BBR->get_rect(i).unsafe_col(0)),&(BBR->get_rect(i).unsafe_col(1)));
 			}
-			else
-			{
-				//as sun
-				if(handle == -1)
-					handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","mxRot(:,3)");
-				else
-					handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","mxRot(:,3)");
-				engine->evaluate("axis tight");
+			gfx->hold_off();
+			
 
-			}
+
+
+// 			if(viewpoint=="basin")
+// 			{
+// 				//for basin view
+// 				engine->put_double_matrix("mxRot",&rot_domain);
+// 				if(handle == -1)
+// 					handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","mxRot(:,3)");
+// 				else
+// 					handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","mxRot(:,3)");
+// 			}
+// 			else
+// 			{
+// 				//as sun
+// 				if(handle == -1)
+// 					handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","mxRot(:,3)");
+// 				else
+// 					handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","mxRot(:,3)");
+// 				engine->evaluate("axis tight");
+// 
+// 			}
 					
 
 			//update time w/o UTC offset.
@@ -235,7 +240,7 @@ int main()
 			
 
 			//_getch();
-			Sleep(50);
+		//	Sleep(50);
 
 skip:
 			time = time + dt;
@@ -247,7 +252,7 @@ skip:
 	}
 	catch(std::exception e)
 	{
-		std::cout << "Failure with error: " << e.what() << std::endl;
+		std::cout << e.what() << std::endl;
 	}
 	
 	

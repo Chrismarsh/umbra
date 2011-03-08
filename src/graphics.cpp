@@ -72,3 +72,55 @@ double graphics::add_title( std::string title, int fontsize /*= 14*/ )
 	mxArray* ht =  m_engine->get("ht");
 	return (mxGetScalar(ht));
 }
+
+void graphics::hold_on()
+{
+	m_engine->evaluate("hold on");
+}
+
+void graphics::hold_off()
+{
+	m_engine->evaluate("hold off");
+}
+
+double graphics::plot_line( std::string x, std::string y, std::string options/*=""*/ )
+{
+	double ret = -1;
+	if (m_engine)
+	{
+		std::string command = std::string("plot_handle=plot(") + x +std::string(",") + y + std::string(",'-'");
+
+		if (options == "")
+		{
+			command += std::string(")");
+		}
+		else
+		{
+			command += std::string(",") + options + std::string(")");
+		}
+
+
+		m_engine->evaluate(command);
+		ret = m_engine->get_scaler("plot_handle");
+		m_engine->evaluate("clear plot_handle");
+		
+	}
+	return ret;
+}
+
+double graphics::plot_line(const arma::vec* x, const arma::vec* y,std::string options/*=""*/ )
+{
+	m_engine->put_double_vector("x",x);
+	m_engine->put_double_vector("y",y);
+
+	std::string x_name = "x";
+	std::string y_name = "y";
+
+	double handle = plot_line(x_name,y_name,options);
+
+	m_engine->evaluate("clear x y plot_handle");
+
+	return handle;
+
+}
+

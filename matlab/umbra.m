@@ -57,8 +57,8 @@ alt = 0.0;
 % datestr(time,'yyyy/mm/dd HH:MM:SS')
 %utc offset
 UTC_offset = 7;
-tstart = datenum('2010/12/22 6:00:00');
-tend = datenum('2010/12/22 18:00:00');
+tstart = datenum('2011/3/6 7:30:00');
+tend = datenum('2011/3/6 18:00:00');
 tstart=datestr(addtodate(tstart,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 tend=datestr(addtodate(tend,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 
@@ -108,7 +108,7 @@ end
 
 %triangluation
 %x,y,z,proj_x,proj_y,proj_z,triCx,triCy,triCz,shadow
-Triangulation=zeros(max(tri.size),9);
+% Triangulation=zeros(max(tri.size),9);
 
 % shadows=zeros(length(tri.Triangulation),1);
 
@@ -116,15 +116,15 @@ Triangulation=zeros(max(tri.size),9);
 
 %build the partial matrix
 % for i=1:max(tri.size)
-%     Triangulation(i,1)=x(tri.Triangulationi);
+%     Triangulation(i,1)=x(tri.Triangulation);
 %     Triangulation(i,2)=y(i);
 %     Triangulation(i,2)=z(i);
 %     
-%     centre = tri_center([Triangle_set{i}.x1 Triangle_set{i}.y1 Triangle_set{i}.z1],...
-%                                                 [Triangle_set{i}.x2 Triangle_set{i}.y2 Triangle_set{i}.z2],...
-%                                                 [Triangle_set{i}.x3 Triangle_set{i}.y3 Triangle_set{i}.z3],...
-%                                                 'circumcenter');
-%     
+% %     centre = tri_center([Triangle_set{i}.x1 Triangle_set{i}.y1 Triangle_set{i}.z1],...
+% %                                                 [Triangle_set{i}.x2 Triangle_set{i}.y2 Triangle_set{i}.z2],...
+% %                                                 [Triangle_set{i}.x3 Triangle_set{i}.y3 Triangle_set{i}.z3],...
+% %                                                 'circumcenter');
+% %     
 % end
     
 while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS')
@@ -190,57 +190,57 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
 % +-> +x
 
     %only need 1:4 of these 5x1 vectors bbx, bby
-%     [bbx,bby,~,~]=minboundrect(proj_x,proj_y);
-% 
-%     m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
-%     step=(bbx(3)-bbx(4))/sg_nx;
-%     for i=1:sg_nx
-%         xpos.bottom=bbx(1)+step*i;
-%         xpos.top=bbx(4)+step*i;
-%         
-%         x_mp.bottom(i).x=xpos.bottom;
-%         x_mp.bottom(i).y=m*(xpos.bottom-bbx(1))+bby(1); %2pt line eqn
-%       
-%         x_mp.top(i).x=xpos.top;
-%         x_mp.top(i).y=m*(xpos.top-bbx(4))+bby(4); %2pt line eqn
-%         
-%     end
-%         
-% 
-%     
-%     %build sub rectangles
-%     for i=1:sg_nx
-%         %first rect
-%        if i ==1
-%            rectangles{1}.vertex=[[bbx(1),bby(1)];...%bottom left
-%                          [x_mp.bottom(1).x,x_mp.bottom(1).y];...%bottom right mid point
-%                          [x_mp.top(1).x,x_mp.top(1).y];... %top right mid point
-%                          [bbx(4),bby(4)];...%top right
-%                          [bbx(1),bby(1)]]; 
-% 
-%     
-% %        last rect
-%        else if i==sg_nx
-%            rectangles{i}.vertex= [[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
-%                            [bbx(2),bby(2)];...
-%                            [bbx(3),bby(3)];...
-%                            [x_mp.top(i-1).x,x_mp.top(i-1).y];...
-%                            [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
-%            else
-%              rectangles{i}.vertex=[[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
-%                            [x_mp.bottom(i).x,x_mp.bottom(i).y];...
-%                            [x_mp.top(i).x,x_mp.top(i).y];...
-%                            [x_mp.top(i-1).x,x_mp.top(i-1).y];...
-%                            [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
-%            end
-%        end
-%         %initialize memory for triangle-rect association. Each index is an
-%         %index into the triangulation
-%         rectangles{i}.triangle_set=zeros(length(tri.Triangulation),1); %worst case....
-%         %number of triangles in this rectangle
-%         rectangles{i}.num_triangles=0;
-%           
-%     end
+    [bbx,bby,~,~]=minboundrect(proj_x,proj_y);
+
+    m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
+    step=(bbx(3)-bbx(4))/sg_nx;
+    for i=1:sg_nx
+        xpos.bottom=bbx(1)+step*i;
+        xpos.top=bbx(4)+step*i;
+        
+        x_mp.bottom(i).x=xpos.bottom;
+        x_mp.bottom(i).y=m*(xpos.bottom-bbx(1))+bby(1); %2pt line eqn
+      
+        x_mp.top(i).x=xpos.top;
+        x_mp.top(i).y=m*(xpos.top-bbx(4))+bby(4); %2pt line eqn
+        
+    end
+        
+
+    
+    %build sub rectangles
+    for i=1:sg_nx
+        %first rect
+       if i ==1
+           rectangles{1}.vertex=[[bbx(1),bby(1)];...%bottom left
+                         [x_mp.bottom(1).x,x_mp.bottom(1).y];...%bottom right mid point
+                         [x_mp.top(1).x,x_mp.top(1).y];... %top right mid point
+                         [bbx(4),bby(4)];...%top right
+                         [bbx(1),bby(1)]]; 
+
+    
+%        last rect
+       else if i==sg_nx
+           rectangles{i}.vertex= [[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
+                           [bbx(2),bby(2)];...
+                           [bbx(3),bby(3)];...
+                           [x_mp.top(i-1).x,x_mp.top(i-1).y];...
+                           [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
+           else
+             rectangles{i}.vertex=[[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
+                           [x_mp.bottom(i).x,x_mp.bottom(i).y];...
+                           [x_mp.top(i).x,x_mp.top(i).y];...
+                           [x_mp.top(i-1).x,x_mp.top(i-1).y];...
+                           [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
+           end
+       end
+        %initialize memory for triangle-rect association. Each index is an
+        %index into the triangulation
+        rectangles{i}.triangle_set=zeros(length(tri.Triangulation),1); %worst case....
+        %number of triangles in this rectangle
+        rectangles{i}.num_triangles=0;
+          
+    end
 %      
 %   
 %    %loop over all the nodes to find which rectrangle(s) a triangle

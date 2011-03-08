@@ -76,6 +76,7 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y )
 				m_triangles.push_back(new triangle(v1,v2,v3));
 		}
 	
+		m_engine->evaluate("clear t; clear tri;");
 
 	}
 }

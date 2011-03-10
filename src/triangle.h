@@ -40,10 +40,10 @@ public:
 
 	//return vth vertex
 	int get_vertex(int v);
+	void set_shadow(int s);
 private:
 	//store index like matlab
 	int vertex[3];
-
-	std::vector<int> m_centre;
+	int m_shadow;
 
 };

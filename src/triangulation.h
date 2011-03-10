@@ -46,6 +46,7 @@ public:
 	void create_delaunay(arma::vec& x, arma::vec& y);
 	size_t get_size();
 	arma::uvec get_tri(int t);
+	triangle* get_ptr(int t);
 private:
 	//triangulation, stored as a list of indexes into the x,y,z data. This is like Matlab
 //	std::vector<std::vector<double> > m_tri;  //size * 3

@@ -113,3 +113,8 @@ arma::uvec triangulation::get_tri( int t )
 
 	return v;
 }
+
+triangle* triangulation::get_ptr( int t )
+{
+	return m_triangles.at(t);
+}

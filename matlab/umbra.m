@@ -110,7 +110,7 @@ end
 %x,y,z,proj_x,proj_y,proj_z,triCx,triCy,triCz,shadow
 % Triangulation=zeros(max(tri.size),9);
 
-% shadows=zeros(length(tri.Triangulation),1);
+shadows=zeros(length(tri.Triangulation),1);
 
 
 
@@ -246,20 +246,20 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
 %    %loop over all the nodes to find which rectrangle(s) a triangle
 %    %lies within
 %    fprint('Calculating spatial segmentation\n')
-%     for j=1:tri.size
-%        for i=1:sg_nx
-%            %eww.....but checks if any of the 3 vertices are in a rectangle
-%            %sub OBB
-%            if inRect(rectangles{i},proj_x(tri.Triangulation(j,1)),proj_y(tri.Triangulation(j,1))) > 0 ...
-%                    || inRect(rectangles{i},proj_x(tri.Triangulation(j,2)),proj_y(tri.Triangulation(j,2))) > 0 ...
-%                    || inRect(rectangles{i},proj_x(tri.Triangulation(j,3)),proj_y(tri.Triangulation(j,3))) > 0 
-%               
-%               rectangles{i}.num_triangles = rectangles{i}.num_triangles+1;
-%               rectangles{i}.triangle_set(rectangles{i}.num_triangles) = j; %save the index into the triangulation      
-% %               shadows(j)=i;
-%            end
-%        end
-%     end
+    for j=1:tri.size
+       for i=1:sg_nx
+           %eww.....but checks if any of the 3 vertices are in a rectangle
+           %sub OBB
+           if inRect(rectangles{i},proj_x(tri.Triangulation(j,1)),proj_y(tri.Triangulation(j,1))) > 0 ...
+                   || inRect(rectangles{i},proj_x(tri.Triangulation(j,2)),proj_y(tri.Triangulation(j,2))) > 0 ...
+                   || inRect(rectangles{i},proj_x(tri.Triangulation(j,3)),proj_y(tri.Triangulation(j,3))) > 0 
+              
+              rectangles{i}.num_triangles = rectangles{i}.num_triangles+1;
+              rectangles{i}.triangle_set(rectangles{i}.num_triangles) = j; %save the index into the triangulation      
+               shadows(j)=i;
+           end
+       end
+    end
     
 %     triangle_set{:}=sort(triangle_set
     
@@ -333,7 +333,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
             p = patch( ...
                 'Vertices',[proj_x(:) proj_y(:)], ...
                 'Faces', tri.Triangulation, ...
-                'facevertexcdata',proj_z(:),...
+                'facevertexcdata',shadows(:),...
                 'facecolor','flat',...
                 'edgecolor','black');
         end
@@ -343,7 +343,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
              set(p,'facevertexcdata',proj_z(:));
         else
             %for "as the sun"
-            set(p,'Vertices',[proj_x(:) proj_y(:) ],'facevertexcdata',proj_z(:));
+            set(p,'Vertices',[proj_x(:) proj_y(:) ],'facevertexcdata',shadows(:));
   
             axis tight
 

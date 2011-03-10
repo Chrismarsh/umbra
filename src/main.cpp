@@ -55,8 +55,8 @@ using namespace boost;
 int main()
 
 {
-	try
-	{
+	//try
+	//{
 	
 		matlab* engine = new matlab();
 		graphics* gfx = new graphics(engine);
@@ -73,6 +73,9 @@ int main()
 
 		if(!xyz)
 			throw std::exception(engine->get_last_error().c_str());
+
+		engine->evaluate("clear square_nodes_5m");
+
 
 		int num_nodes = xyz->n_rows;
 		arma::mat rot_domain(num_nodes,3);
@@ -164,96 +167,120 @@ int main()
 			double	A  = Az * M_PI/180;
 			double E  = El * M_PI/180;
 
-			if(E < 0)
-				goto skip;
+			//check negative solar elevation 
+			if(E > 0)
+			{	
 
-			//eqns (6) & (7) in Montero
-			double	z0 = M_PI-A;
-			double q0 = M_PI/2 - E;
+				//eqns (6) & (7) in Montero
+				double	z0 = M_PI-A;
+				double q0 = M_PI/2 - E;
 
-			K   << cos(z0)          << sin(z0)          << 0       <<arma::endr
-				<< -cos(q0)*sin(z0) << cos(q0)*cos(z0)  << sin(q0) << arma::endr
-				<< sin(q0)*sin(z0)  << -cos(z0)*sin(q0) << cos(q0);
+				K   << cos(z0)          << sin(z0)          << 0       <<arma::endr
+					<< -cos(q0)*sin(z0) << cos(q0)*cos(z0)  << sin(q0) << arma::endr
+					<< sin(q0)*sin(z0)  << -cos(z0)*sin(q0) << cos(q0);
 
-			//perform the euler rotation
-			for(int i = 0; i<num_nodes;i++)
-			{
-				arma::vec coord(3);
-				coord(0) = (*xyz)(i,0);
-				coord(1) = (*xyz)(i,1);
-				coord(2) = (*xyz)(i,2);
+				//perform the euler rotation
+				for(int i = 0; i<num_nodes;i++)
+				{
+					arma::vec coord(3);
+					coord(0) = (*xyz)(i,0);
+					coord(1) = (*xyz)(i,1);
+					coord(2) = (*xyz)(i,2);
 
-				coord = K*coord;
-				rot_domain(i,0)=coord(0);
-				rot_domain(i,1)=coord(1);
-				rot_domain(i,2)=coord(2);
+					coord = K*coord;
+					rot_domain(i,0)=coord(0);
+					rot_domain(i,1)=coord(1);
+					rot_domain(i,2)=coord(2);
 
-			}
+				}
 
-			engine->put_double_matrix("mxRot",&rot_domain);
+				engine->put_double_matrix("mxRot",&rot_domain);
 
-			//build bounding rect
-			engine->evaluate("[bbx,bby,~,~]=minboundrect(mxRot(:,1),mxRot(:,2));");
-			arma::vec* bbx = engine->get_double_vector("bbx");
-			arma::vec* bby = engine->get_double_vector("bby");
-			gfx->hold_on();
-			gfx->plot_line(bbx,bby,"'color','red'");
-			bounding_rect* BBR = new bounding_rect(bbx,bby,3);
+				//build bounding rect
+				bounding_rect* BBR = new bounding_rect(engine);
+				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20);
 			
-			for (int i = 0; i<BBR->n_segments;i++)
-			{
-				
-				gfx->plot_line(&(BBR->get_rect(i).unsafe_col(0)),&(BBR->get_rect(i).unsafe_col(1)));
-			}
-			gfx->hold_off();
+				arma::vec shadows(tri->get_size());
+
+				//for each triangle
+				for(int i = 0; i< tri->get_size();i++)
+				{
+					for(int j=0; j < BBR->n_segments;j++)
+					{
+						arma::uvec v = tri->get_tri(i);
+						if (  BBR->pt_in_rect(rot_domain(v(0)-1,0),rot_domain(v(0)-1,1), BBR->get_rect(j)) || //pt1
+							  BBR->pt_in_rect(rot_domain(v(1)-1,0),rot_domain(v(1)-1,1), BBR->get_rect(j)) || //pt2
+							  BBR->pt_in_rect(rot_domain(v(2)-1,0),rot_domain(v(2)-1,1), BBR->get_rect(j)) )  //pt3
+						{
+							BBR->get_rect(j)->triangles.push_back(tri->get_ptr(i));
+							shadows(i)=j;
+						}
+					}
+				}
+
+				engine->put_double_vector("shadows",&shadows);
+
+				//plot BBR
+				gfx->hold_on();
+				gfx->plot_line(BBR->bbx,BBR->bby,"'color','red'");
+				for (int i = 0; i<BBR->n_segments;i++)
+				{
+					gfx->plot_line(&(BBR->get_rect(i)->coord->unsafe_col(0)),&(BBR->get_rect(i)->coord->unsafe_col(1)));
+				}
+				gfx->hold_off();
+
 			
+				//plot
+				if(viewpoint=="basin")
+				{
+					//for basin view
+					engine->put_double_matrix("mxRot",&rot_domain);
+					if(handle == -1)
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","mxRot(:,3)");
+					else
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","mxRot(:,3)");
+				}
+				else
+				{
+					//as sun
+	// 				if(handle == -1)
+	// 					handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","mxRot(:,3)");
+	// 				else
+	// 					handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","mxRot(:,3)");
+	// 				engine->evaluate("axis tight");
 
+					if(handle == -1)
+						handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","shadows(:)");
+					else
+						handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","shadows(:)");
+					engine->evaluate("axis tight");
 
-
-// 			if(viewpoint=="basin")
-// 			{
-// 				//for basin view
-// 				engine->put_double_matrix("mxRot",&rot_domain);
-// 				if(handle == -1)
-// 					handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","mxRot(:,3)");
-// 				else
-// 					handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","mxRot(:,3)");
-// 			}
-// 			else
-// 			{
-// 				//as sun
-// 				if(handle == -1)
-// 					handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","mxRot(:,3)");
-// 				else
-// 					handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","mxRot(:,3)");
-// 				engine->evaluate("axis tight");
-// 
-// 			}
+				}
 					
 
-			//update time w/o UTC offset.
-			ss.str("");
-			ss << time;			
+				//update time w/o UTC offset.
+				ss.str("");
+				ss << time;			
 		 			
-			ht = gfx->add_title(ss.str());
+				ht = gfx->add_title(ss.str());
 			
 			
 
-			//_getch();
-		//	Sleep(50);
+				//_getch();
+				//Sleep(50);
 
-skip:
+			}
 			time = time + dt;
 		}
 	
 
 		_getch();
 		engine->stop();
-	}
-	catch(std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	}
+	//}
+// 	catch(std::exception e)
+// 	{
+// 		std::cout << e.what() << std::endl;
+// 	}
 	
 	
 	return 0;

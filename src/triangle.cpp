@@ -41,3 +41,8 @@ int triangle::get_vertex( int v )
 	//add boundary check here
 	return vertex[v];
 }
+
+void triangle::set_shadow( int s )
+{
+	m_shadow = s;
+}

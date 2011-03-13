@@ -30,20 +30,34 @@
 #pragma once
 
 #include <vector>
+#include <armadillo>
 
+#include "point.h"
+class triangle; 
 class triangle
 {
 public:
 	//use xyz triples in the vector
 	//store the index like matlab
 	triangle(int vertex1, int vertex2, int vertex3);
+	triangle();
+
+	void update_subtri();
 
 	//return vth vertex
 	int get_vertex(int v);
-	void set_shadow(int s);
+	point get_vertex_value(int v);
+	void set_vertex_values( ptr_point v1, ptr_point v2, ptr_point v3 );
+	void set_shadow(bool s);
+	bool contains(double x, double y);
+	point center;
 private:
 	//store index like matlab
-	int vertex[3];
-	int m_shadow;
-
+	int vertex_index[3];
+	ptr_point vertex_value[3];
+	
+	bool m_shadow;
+	 
+	//always 4 subriangles
+	triangle* sub_tri;
 };

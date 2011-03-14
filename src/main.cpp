@@ -228,6 +228,7 @@ int main()
 			
 				//not a great way of doing this, but it's compatible with matlab's plotting
 				arma::vec shadows(xyz->n_rows);
+				shadows.ones();
 
 				//for each triangle
 				for(int i = 0; i< tri->get_size();i++)
@@ -245,6 +246,24 @@ int main()
 					tri->get_ptr(i)->center.x = (*pos)(0);
 					tri->get_ptr(i)->center.y = (*pos)(1);
 					tri->get_ptr(i)->center.z = (*pos)(2);
+
+					ptr_point v1;
+					v1.x = &rot_domain(t->get_vertex(0)-1,0);
+					v1.y = &rot_domain(t->get_vertex(0)-1,1);
+					v1.z = &rot_domain(t->get_vertex(0)-1,2);
+
+					ptr_point v2;
+					v2.x = &rot_domain(t->get_vertex(1)-1,0);
+					v2.y = &rot_domain(t->get_vertex(1)-1,1);
+					v2.z = &rot_domain(t->get_vertex(1)-1,2);
+
+					ptr_point v3;
+					v3.x = &rot_domain(t->get_vertex(2)-1,0);
+					v3.y = &rot_domain(t->get_vertex(2)-1,1);
+					v3.z = &rot_domain(t->get_vertex(2)-1,2);
+
+
+					tri->get_ptr(i)->set_vertex_values(v1,v2,v3);
 					tri->get_ptr(i)->update_subtri();
 
 					for(int j=0; j < BBR->n_segments;j++)
@@ -262,6 +281,8 @@ int main()
 
 				std::cout << "Generating shadows" << std::endl;
 
+
+				
 
 				//for each rect
 				for(int i = 0; i<BBR->n_segments; i++)
@@ -282,24 +303,21 @@ int main()
 							//out current kth triangle
 							triangle* tk = (BBR->get_rect(i)->triangles.at(k));
 
-							if(j != k) //&& tj->z_center > t->z_center)
+							if(j != k)// && tj->get_vertex_value(0).z > tk->get_vertex_value(0).z)
 							{
 								//check each vertex
 								if (tk->contains(tj->get_vertex_value(0).x,tj->get_vertex_value(0).y) ||
 									tk->contains(tj->get_vertex_value(1).x,tj->get_vertex_value(1).y) ||
-									tk->contains(tj->get_vertex_value(2).x,tj->get_vertex_value(2).y) 
-									
-									
-									
-									)
+									tk->contains(tj->get_vertex_value(2).x,tj->get_vertex_value(2).y) ||
+									tk->contains(tj->center.x,tj->center.y))
 								{
 										tk->set_shadow(true);
-										shadows(tk->get_vertex(0)-1) = 1;
+										shadows(tk->get_vertex(0)-1) = 1.0;
 
 								}
 								else
 								{
-										shadows(tk->get_vertex(0)-1) = 0;
+										shadows(tk->get_vertex(0)-1) = 0.0;
 								}
 							}
 
@@ -309,7 +327,7 @@ int main()
 
 				}
 
-
+				double  lol = shadows(9999);
 				engine->put_double_vector("shadows",&shadows);
 
 				//plot BBR

@@ -50,6 +50,7 @@ public:
 	void set_vertex_values( ptr_point v1, ptr_point v2, ptr_point v3 );
 	void set_shadow(bool s);
 	bool contains(double x, double y);
+	bool intersects(triangle* t);
 	point center;
 private:
 	//store index like matlab

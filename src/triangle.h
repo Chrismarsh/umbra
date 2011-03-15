@@ -33,7 +33,6 @@
 #include <armadillo>
 
 #include "point.h"
-#include "matlab_engine.h"
 
 class triangle
 {
@@ -62,9 +61,11 @@ private:
 	//always 4 subriangles
 	triangle** m_sub_tri;
 
-	//need this so as to be able to call matlab helper functions
-	//matlab* m_engine;
-
 	//set the number of sub triangles
 	size_t m_cur_rec_depth;
+
+
+	//get the mid point of a line segment
+	point* midpoint(ptr_point* p1, ptr_point* p2);
+	point  calc_center(triangle* t);
 };

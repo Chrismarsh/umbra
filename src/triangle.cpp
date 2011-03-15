@@ -103,57 +103,11 @@ void triangle::set_vertex_values( ptr_point vertex1, ptr_point vertex2,ptr_point
 	m_vertex_list[2].y = vertex3.y;
 //	m_vertex_list[2].z = vertex3.z;
 
-// 	arma::mat c(3,3);
-// 	c << *(m_vertex_list[0].x) << *(m_vertex_list[0].y) << 0 << arma::endr
-// 	  << *(m_vertex_list[1].x) << *(m_vertex_list[1].y) << 0 << arma::endr
-// 	  << *(m_vertex_list[2].x) << *(m_vertex_list[2].y) << 0 << arma::endr;
-	
+	//center of the triangle
+	point pos = calc_center(this);		
 
-	//ok lets try a faster circumcenter algorithm *not* implimented in matlab :/
-
-	arma::vec Pa(3);
-	Pa(0) = *(m_vertex_list[0].x);
-	Pa(1) = *(m_vertex_list[0].y);
-	Pa(2) = 0;
-
-	arma::vec Pb(3);
-	Pb(0) = *(m_vertex_list[1].x);
-	Pb(1) = *(m_vertex_list[1].y);
-	Pb(2) = 0;
-
-	arma::vec Pc(3);
-	Pc(0) = *(m_vertex_list[2].x);
-	Pc(1) = *(m_vertex_list[2].y);
-	Pc(2) = 0;
-
-	arma::vec AB = Pb - Pa;
-	arma::vec AC = Pc - Pa;
-	arma::vec BC = Pc - Pb;
-
-	arma::vec N = arma::cross(AC,AB);
-	arma::vec L1 = arma::cross(AB,N);
-	arma::vec L2 = arma::cross(BC,N);
-	arma::vec P21 = (Pc - Pa)/2;
-	arma::vec P1 = (Pa + Pb)/2;
-
-	//temp
-	arma::mat ML1(L1);
-	arma::mat ML2(L2);
-
-	arma::mat ML = arma::join_rows(ML1,-ML2);
-
-	arma::vec lambda = arma::solve(ML,P21);
-		
-	arma::vec pos = P1+lambda(0)*L1;
-		
-
-// 
-// 	m_engine->put_double_matrix("t_set",&c);
-// 	m_engine->evaluate("c=tri_center( [t_set(1,1) t_set(1,2) t_set(1,3)],[t_set(2,1) t_set(2,2) t_set(2,3)],[t_set(3,1) t_set(3,2) t_set(3,3)],'circumcenter')");
-//	arma::vec* pos = m_engine->get_double_vector("c");
-
-	m_center.x = (pos)(0);
-	m_center.y = (pos)(1);
+	m_center.x = pos.x;
+	m_center.y = pos.y;
 //	m_center.z = (*pos)(2);
 }
 
@@ -188,27 +142,15 @@ void triangle::update_subtri()
 	{
 		longest = 0;
 		//midpoint of the longest edge (which is 0-1)
-		point *midpt_01 = new point;
-		midpt_01->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[1].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[1].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[1].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[1].y))) * 1.0) /2.0;
-		double m = (*(m_vertex_list[1].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[1].x)-*(m_vertex_list[0].x));
-		double b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
-		midpt_01->y = m*midpt_01->x+b;
-
-
+		point *midpt_01 = midpoint(&m_vertex_list[0],&m_vertex_list[1]);
+		
 		//midpoint of the opposite edge (which is 0-2)
-		point* midpt_02 = new point;
-		midpt_02->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
-		m = (*(m_vertex_list[2].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
-		b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
-		midpt_01->y = m*midpt_01->x+b;
+		point* midpt_02 =midpoint(&m_vertex_list[0],&m_vertex_list[2]);
+
 
 		//midpoint of the opposite edge2 (which is 1-2)
-		point* midpt_12 = new point;
-		midpt_12->x = sqrt( (*(m_vertex_list[1].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[1].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[1].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[1].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
-		m = (*(m_vertex_list[2].y)-*(m_vertex_list[1].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
-		b = *(m_vertex_list[1].y)-m**(m_vertex_list[1].x);
-		midpt_12->y = m*midpt_12->x+b;
-
+		point* midpt_12 = midpoint(&m_vertex_list[1],&m_vertex_list[2]);
+	
 		//have 4 sub triangles now:
 		//define CCW, left->right
 		//t1 = 0-01-02-01
@@ -272,26 +214,14 @@ void triangle::update_subtri()
 		longest = 1;
 
 		//midpoint of the longest edge (which is 1-2)
-		point* midpt_12 = new point;
-		midpt_12->x = sqrt( (*(m_vertex_list[1].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[1].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[1].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[1].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
-		double m = (*(m_vertex_list[2].y)-*(m_vertex_list[1].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
-		double b = *(m_vertex_list[1].y)-m**(m_vertex_list[1].x);
-		midpt_12->y = m*midpt_12->x+b;
+		point* midpt_12 = midpoint(&m_vertex_list[1],&m_vertex_list[2]);
 
 
 		//midpoint of the opposite edge (which is 0-1)
-		point* midpt_01 = new point;
-		midpt_01->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[1].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[1].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[1].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[1].y))) * 1.0) /2.0;
-		m = (*(m_vertex_list[1].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[1].x)-*(m_vertex_list[0].x));
-		b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
-		midpt_01->y = m*midpt_01->x+b;
+		point* midpt_01 = midpoint(&m_vertex_list[0],&m_vertex_list[1]);
 
 		//midpoint of the opposite edge2 (which is 0-2)
-		point* midpt_02 = new point;
-		midpt_02->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
-		m = (*(m_vertex_list[2].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
-		b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
-		midpt_02->y = m*midpt_02->x+b;
+		point* midpt_02 = midpoint(&m_vertex_list[0],&m_vertex_list[2]);
 
 		//have 4 sub triangles now:
 		//define CCW, left->right
@@ -355,26 +285,13 @@ void triangle::update_subtri()
 		longest = 2;
 
 		//midpoint of the longest edge (which is 0-2)
-		point* midpt_02 = new point;
-		midpt_02->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[1].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
-		double m = (*(m_vertex_list[2].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
-		double b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
-		midpt_02->y = m*midpt_02->x+b;
-
+		point* midpt_02 = midpoint(&m_vertex_list[0],&m_vertex_list[2]);
 
 		//midpoint of the opposite edge (which is 0-1)
-		point* midpt_01 = new point;
-		midpt_01->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[1].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[1].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[1].y))) * 1.0) /2.0;
-		m = (*(m_vertex_list[1].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[1].x)-*(m_vertex_list[0].x));
-		b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
-		midpt_01->y = m*midpt_01->x+b;
+		point* midpt_01 = midpoint(&m_vertex_list[0],&m_vertex_list[1]);
 
 		//midpoint of the opposite edge2 (which is 1-2)
-		point* midpt_12 = new point;
-		midpt_12->x = sqrt( (*(m_vertex_list[1].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[1].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[1].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[1].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
-		m = (*(m_vertex_list[2].y)-*(m_vertex_list[1].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[1].x));
-		b = *(m_vertex_list[1].y)-m**(m_vertex_list[1].x);
-		midpt_12->y = m*midpt_12->x+b;
+		point* midpt_12 = midpoint(&m_vertex_list[1],&m_vertex_list[2]);
 
 		//have 4 sub triangles now:
 		//define CCW, left->right
@@ -431,10 +348,6 @@ void triangle::update_subtri()
 		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
 
 	}	
-		
-
-
-
 }
 triangle& triangle::sub_tri(size_t t)
 {
@@ -476,4 +389,60 @@ point triangle::operator()(size_t v )
 point triangle::get_center()
 {
 	return m_center;
+}
+
+point* triangle::midpoint( ptr_point* p1, ptr_point* p2 )
+{
+	point* mp = new point;
+	//new x value 1/2 way there
+	mp->x = *(p1->x) + (*(p2->x) - *(p1->x))/2.0;
+	//slope
+	double m = (*(p2->y)-*(p1->y))/(*(p2->x)-*(p1->x));
+	double b = *(p1->y)-m**(p1->x);
+	mp->y = m*mp->x+b;
+
+	return mp;
+}
+
+point triangle::calc_center( triangle* t )
+{
+	arma::vec Pa(3);
+	Pa(0) = *(t->m_vertex_list[0].x);
+	Pa(1) = *(t->m_vertex_list[0].y);
+	Pa(2) = 0;
+
+	arma::vec Pb(3);
+	Pb(0) = *(t->m_vertex_list[1].x);
+	Pb(1) = *(t->m_vertex_list[1].y);
+	Pb(2) = 0;
+
+	arma::vec Pc(3);
+	Pc(0) = *(t->m_vertex_list[2].x);
+	Pc(1) = *(t->m_vertex_list[2].y);
+	Pc(2) = 0;
+
+	arma::vec AB = Pb - Pa;
+	arma::vec AC = Pc - Pa;
+	arma::vec BC = Pc - Pb;
+
+	arma::vec N = arma::cross(AC,AB);
+	arma::vec L1 = arma::cross(AB,N);
+	arma::vec L2 = arma::cross(BC,N);
+	arma::vec P21 = (Pc - Pa)/2;
+	arma::vec P1 = (Pa + Pb)/2;
+
+	//temp
+	arma::mat ML1(L1);
+	arma::mat ML2(L2);
+
+	arma::mat ML = arma::join_rows(ML1,-ML2);
+
+	arma::vec lambda = arma::solve(ML,P21);
+
+	arma::vec pos = P1+lambda(0)*L1;
+
+	point p;
+	p.x = pos(0);
+	p.y = pos(1);
+	return p;
 }

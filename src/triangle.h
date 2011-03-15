@@ -40,8 +40,8 @@ class triangle
 public:
 	//use xyz triples in the vector
 	//store the index like matlab
-	triangle(matlab* engine, ptr_point vertex1, ptr_point vertex2, ptr_point vertex3, size_t cur_rec_depth=0);
-	triangle(matlab* engine,size_t cur_rec_depth);
+	triangle( ptr_point vertex1, ptr_point vertex2, ptr_point vertex3, size_t cur_rec_depth=0);
+	triangle(size_t cur_rec_depth);
 
 
 	//returns the v-th vertex[0-2] of the triangle
@@ -63,7 +63,7 @@ private:
 	triangle** m_sub_tri;
 
 	//need this so as to be able to call matlab helper functions
-	matlab* m_engine;
+	//matlab* m_engine;
 
 	//set the number of sub triangles
 	size_t m_cur_rec_depth;

@@ -92,7 +92,7 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y)
 				vertex3.y = &y(v3-1);
 			//	vertex3.z = &z(v3);
 
-				m_triangles.push_back(new triangle(m_engine,vertex1,vertex2,vertex3));
+				m_triangles.push_back(new triangle(vertex1,vertex2,vertex3));
 		//std::cout << i << std::endl;
 		}
 	

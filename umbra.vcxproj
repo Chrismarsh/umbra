@@ -34,10 +34,6 @@
     <ClInclude Include="src\triangle.h" />
     <ClInclude Include="src\triangulation.h" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="My Inspector Results\r001mi2\r001mi2.insp" />
-    <None Include="My Inspector Results\r002mi3\r002mi3.insp" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5035F651-E13F-481D-8B4F-55B53E39E95F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

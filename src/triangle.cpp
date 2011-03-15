@@ -29,9 +29,9 @@
 
 #include "triangle.h"
 
-triangle::triangle(matlab* engine,  ptr_point vertex1, ptr_point vertex2, ptr_point vertex3,size_t cur_rec_depth/*=0*/)
+triangle::triangle( ptr_point vertex1, ptr_point vertex2, ptr_point vertex3,size_t cur_rec_depth/*=0*/)
 {
-	m_engine = engine;
+
 	m_cur_rec_depth = cur_rec_depth+1;
 // 	m_sub_tri[0] = NULL;
 // 	m_sub_tri[1] = NULL;
@@ -49,12 +49,12 @@ triangle::triangle(matlab* engine,  ptr_point vertex1, ptr_point vertex2, ptr_po
 	}
 }
 
-triangle::triangle(matlab* engine,size_t cur_rec_depth)
+triangle::triangle(size_t cur_rec_depth)
 {
 	m_sub_tri = NULL;
 
 	m_cur_rec_depth = cur_rec_depth+1;
-	m_engine = engine;
+
 
 }
 
@@ -136,6 +136,7 @@ void triangle::set_vertex_values( ptr_point vertex1, ptr_point vertex2,ptr_point
 	arma::vec P21 = (Pc - Pa)/2;
 	arma::vec P1 = (Pa + Pb)/2;
 
+	//temp
 	arma::mat ML1(L1);
 	arma::mat ML2(L2);
 
@@ -168,7 +169,7 @@ void triangle::update_subtri()
 	m_sub_tri = new triangle*[4];
 	for(int i = 0; i<4;i++)
 	{
-		m_sub_tri[i] = new triangle(m_engine,m_cur_rec_depth);
+		m_sub_tri[i] = new triangle(m_cur_rec_depth);
 		
 
 		//this->m_sub_tri[i]->m_cur_rec_depth = this->m_cur_rec_depth+1;

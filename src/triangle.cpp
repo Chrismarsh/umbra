@@ -103,17 +103,56 @@ void triangle::set_vertex_values( ptr_point vertex1, ptr_point vertex2,ptr_point
 	m_vertex_list[2].y = vertex3.y;
 //	m_vertex_list[2].z = vertex3.z;
 
-	arma::mat c(3,3);
-	c << *(m_vertex_list[0].x) << *(m_vertex_list[0].y) << 0 << arma::endr
-	  << *(m_vertex_list[1].x) << *(m_vertex_list[1].y) << 0 << arma::endr
-	  << *(m_vertex_list[2].x) << *(m_vertex_list[2].y) << 0 << arma::endr;
+// 	arma::mat c(3,3);
+// 	c << *(m_vertex_list[0].x) << *(m_vertex_list[0].y) << 0 << arma::endr
+// 	  << *(m_vertex_list[1].x) << *(m_vertex_list[1].y) << 0 << arma::endr
+// 	  << *(m_vertex_list[2].x) << *(m_vertex_list[2].y) << 0 << arma::endr;
 	
-	m_engine->put_double_matrix("t_set",&c);
-	m_engine->evaluate("c=tri_center( [t_set(1,1) t_set(1,2) t_set(1,3)],[t_set(2,1) t_set(2,2) t_set(2,3)],[t_set(3,1) t_set(3,2) t_set(3,3)],'circumcenter')");
-	arma::vec* pos = m_engine->get_double_vector("c");
 
-	m_center.x = (*pos)(0);
-	m_center.y = (*pos)(1);
+	//ok lets try a faster circumcenter algorithm *not* implimented in matlab :/
+
+	arma::vec Pa(3);
+	Pa(0) = *(m_vertex_list[0].x);
+	Pa(1) = *(m_vertex_list[0].y);
+	Pa(2) = 0;
+
+	arma::vec Pb(3);
+	Pb(0) = *(m_vertex_list[1].x);
+	Pb(1) = *(m_vertex_list[1].y);
+	Pb(2) = 0;
+
+	arma::vec Pc(3);
+	Pc(0) = *(m_vertex_list[2].x);
+	Pc(1) = *(m_vertex_list[2].y);
+	Pc(2) = 0;
+
+	arma::vec AB = Pb - Pa;
+	arma::vec AC = Pc - Pa;
+	arma::vec BC = Pc - Pb;
+
+	arma::vec N = arma::cross(AC,AB);
+	arma::vec L1 = arma::cross(AB,N);
+	arma::vec L2 = arma::cross(BC,N);
+	arma::vec P21 = (Pc - Pa)/2;
+	arma::vec P1 = (Pa + Pb)/2;
+
+	arma::mat ML1(L1);
+	arma::mat ML2(L2);
+
+	arma::mat ML = arma::join_rows(ML1,-ML2);
+
+	arma::vec lambda = arma::solve(ML,P21);
+		
+	arma::vec pos = P1+lambda(0)*L1;
+		
+
+// 
+// 	m_engine->put_double_matrix("t_set",&c);
+// 	m_engine->evaluate("c=tri_center( [t_set(1,1) t_set(1,2) t_set(1,3)],[t_set(2,1) t_set(2,2) t_set(2,3)],[t_set(3,1) t_set(3,2) t_set(3,3)],'circumcenter')");
+//	arma::vec* pos = m_engine->get_double_vector("c");
+
+	m_center.x = (pos)(0);
+	m_center.y = (pos)(1);
 //	m_center.z = (*pos)(2);
 }
 

@@ -82,7 +82,7 @@ mxArray* matlab::get( std::string name )
 		{
 			mxArray* temp = engGetVariable(m_engine, name.c_str());
 			if (!temp)
-				throw std::exception((std::string("Variable \"") + name + std::string("\" not found")).c_str());
+				throw std::exception(get_last_error().c_str());
 			else
 				return temp;
 

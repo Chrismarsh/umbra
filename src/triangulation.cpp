@@ -56,9 +56,9 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y)
 		//change this later to the struct lookup
 		m_engine->evaluate("t=tri.Triangulation");
 		//get our triangulation structure from matlab
-		mxArray* tri = m_engine->get("t");
-		if(!tri)
-			throw std::exception(m_engine->get_last_error().c_str());
+		mxArray* tri = NULL;
+		tri = m_engine->get("t");
+	
 
 		//will be n * 3
 		const mwSize* size = mxGetDimensions(tri);
@@ -111,6 +111,7 @@ triangulation::triangulation( matlab* engine )
 {
 	m_engine = engine;
 	m_size = 0;
+	m_tri = NULL ;
 }
 
 triangulation::~triangulation()

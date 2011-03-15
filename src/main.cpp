@@ -165,7 +165,7 @@ int main()
 
 				K   << cos(z0)          << sin(z0)          << 0       <<arma::endr
 					<< -cos(q0)*sin(z0) << cos(q0)*cos(z0)  << sin(q0) << arma::endr
-					<< sin(q0)*sin(z0)  << -cos(z0)*sin(q0) << cos(q0);
+					<< sin(q0)*sin(z0)  << -cos(z0)*sin(q0) << cos(q0) << arma::endr;
 
 				//perform the euler rotation
 				for(int i = 0; i<num_nodes;i++)

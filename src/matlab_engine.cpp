@@ -192,10 +192,10 @@ arma::vec* matlab::get_double_vector( std::string name )
 		return NULL;
 	}
 
-	double M = mxGetM(mx);
-	double N = mxGetN(mx);
+	size_t M = mxGetM(mx);
+	size_t N = mxGetN(mx);
 
-	arma::vec*  out_vec = new arma::vec(mxGetM(mx));
+	arma::vec*  out_vec = new arma::vec(M);
 
 
 	memcpy(out_vec->memptr(),mxGetPr(mx),out_vec->n_elem*sizeof(double));
@@ -212,7 +212,7 @@ double matlab::get_scaler( std::string name )
 	{
 		return *(mxGetPr(get(name)));
 	}
-
+	return 0.0;
 }
 
 void matlab::put_double_vector( std::string name, const arma::vec* vec )

@@ -29,7 +29,7 @@
 
 #include "triangulation.h"
 
-void triangulation::create_delaunay( arma::vec& x, arma::vec& y )
+void triangulation::create_delaunay( arma::vec& x, arma::vec& y)
 {
 	if(m_engine)
 	{
@@ -48,7 +48,6 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y )
 		}
 		m_engine->put("xy",xy);
 		m_engine->evaluate("tri=DelaunayTri(xy(:,1),xy(:,2))");
-		m_engine->evaluate("clear xy");
 		//clean up our temp array
 		mxDestroyArray(xy);
 		xy=NULL;
@@ -66,22 +65,44 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y )
  		m_size = size[0]; //first element is the # of rows
 		
 		double* t = mxGetPr(tri);
-
-		for (int i = 0;i<m_size; i++)
+		m_tri = new arma::umat(m_size,3);
+		for (size_t i = 0;i<m_size; i++)
 		{
 			//col major lookup!!!
-				int v1 = int(t[i+0*m_size]);
-				int v2 = int(t[i+1*m_size]);
-				int v3 = int(t[i+2*m_size]);
-				m_triangles.push_back(new triangle(v1,v2,v3));
+			//get the row index data from the matlab triangulation structure
+			//note: all these indexes will be off by 1 because matlab indexing starts at 1 and not 0
+				int v1 = int(t[i+0*m_size]); //v1 -= 1;
+				int v2 = int(t[i+1*m_size]); //v2 -= 1;
+				int v3 = int(t[i+2*m_size]); //v3 -= 1;
+
+				m_tri->operator()(i,0) = v1;
+				m_tri->operator()(i,1) = v2;
+				m_tri->operator()(i,2) = v3;
+
+				ptr_point vertex1,vertex2,vertex3;
+				vertex1.x = &x(v1-1);
+				vertex1.y = &y(v1-1);
+			//	vertex1.z = &z(v1);
+
+				vertex2.x = &x(v2-1);
+				vertex2.y = &y(v2-1);
+			//	vertex2.z = &z(v2);
+
+				vertex3.x = &x(v3-1);
+				vertex3.y = &y(v3-1);
+			//	vertex3.z = &z(v3);
+
+				m_triangles.push_back(new triangle(m_engine,vertex1,vertex2,vertex3));
+		//std::cout << i << std::endl;
 		}
 	
-		m_engine->evaluate("clear t; clear tri;");
+		//clean up in matlab
+		m_engine->evaluate("clear t xy tri;");
 
 	}
 }
 
-size_t triangulation::get_size()
+size_t triangulation::get_num_tri()
 {
 	return m_size;
 }
@@ -94,27 +115,61 @@ triangulation::triangulation( matlab* engine )
 
 triangulation::~triangulation()
 {
-	std::vector<triangle*>::iterator it = m_triangles.begin();
-
-	for(; it != m_triangles.end(); it++)
+	for(auto it = m_triangles.begin(); it != m_triangles.end(); it++)
 	{
 		delete *it;
 	}
 
+	delete m_tri;
+
+	
 }
 
-arma::uvec triangulation::get_tri( int t )
+arma::uvec triangulation::get_index( size_t t )
 {
 	arma::uvec v(3);
 	
-	v(0) = m_triangles[t]->get_vertex(0);
-	v(1) = m_triangles[t]->get_vertex(1);
-	v(2) = m_triangles[t]->get_vertex(2);
+	v(0) = m_tri->operator()(t,0);
+	v(1) = m_tri->operator()(t,1);
+	v(2) = m_tri->operator()(t,2);
 
 	return v;
 }
 
-triangle* triangulation::get_ptr( int t )
+triangle& triangulation::operator()(size_t t)
 {
-	return m_triangles.at(t);
+	return *(m_triangles[t]);
+}
+
+void triangulation::set_vertex_data( arma::mat& data )
+{
+	if(data.n_cols != 3)
+		throw std::exception("Wrong number of columns");
+
+	for(size_t i = 0;i<m_size;i++)
+	{
+		size_t v1 = m_tri->operator()(i,0);
+		size_t v2 = m_tri->operator()(i,1);
+		size_t v3 = m_tri->operator()(i,2);
+
+		ptr_point vertex1,vertex2,vertex3;
+		vertex1.x = &data(v1-1,0);
+		vertex1.y = &data(v1-1,1);
+//		vertex1.z = &data(v1,2);
+
+		vertex2.x = &data(v2-1,0);
+		vertex2.y = &data(v2-1,1);
+//		vertex2.z = &data(v2,2);
+
+		vertex3.x = &data(v3-1,0);
+		vertex3.y = &data(v3-1,1);
+//		vertex3.z = &data(v3,2);
+
+		m_triangles[i]->set_vertex_values(vertex1, vertex2, vertex3);
+	}
+}
+
+arma::umat& triangulation::get_tri_index()
+{
+	return *m_tri;
 }

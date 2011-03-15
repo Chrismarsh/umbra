@@ -30,13 +30,14 @@
 #pragma once
 
 #include <vector>
-
+#include <iostream>
 //matlab engine
 #include <engine.h>
 #include <armadillo>
 
 #include "matlab_engine.h"
 #include "triangle.h"
+
 class triangulation
 {
 
@@ -44,17 +45,22 @@ public:
 	triangulation(matlab* engine);
 	~triangulation();
 	void create_delaunay(arma::vec& x, arma::vec& y);
-	size_t get_size();
-	arma::uvec get_tri(int t);
-	triangle* get_ptr(int t);
+	size_t get_num_tri();
+	void set_vertex_data(arma::mat& data);
+	arma::uvec get_index(size_t t);
+	//returns the t-th triangle
+	triangle& operator()(size_t t);
+	arma::umat& get_tri_index();
 private:
-	//triangulation, stored as a list of indexes into the x,y,z data. This is like Matlab
-//	std::vector<std::vector<double> > m_tri;  //size * 3
 
+	
 
-	size_t m_size;//number of triangulations
-
+	//these two structures need to stay in sync so that matlab can plot them
+	//the triangles
 	std::vector<triangle*> m_triangles;
+	//triangulation, stored as a list of indexes into the x,y,z data. This is like Matlab
+	arma::umat* m_tri;  //size * 3
+	size_t m_size;  //number of triangulations
 
 	//ptr to the matlab engine
 	matlab* m_engine;

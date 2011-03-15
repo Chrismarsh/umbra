@@ -33,6 +33,7 @@ public:
 	}
 	arma::mat* coord;
 	std::vector<triangle*> triangles;
+	std::vector<int> m_globalID;
 };
 class bounding_rect
 {
@@ -44,6 +45,7 @@ public:
 	arma::vec *bbx;
 	arma::vec *bby;
 	bool pt_in_rect(double x, double y, rect* r);
+
 private:
 	std::vector<rect*> m_rectangles;
 	matlab* m_engine;

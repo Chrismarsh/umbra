@@ -33,32 +33,38 @@
 #include <armadillo>
 
 #include "point.h"
-class triangle; 
+#include "matlab_engine.h"
+
 class triangle
 {
 public:
 	//use xyz triples in the vector
 	//store the index like matlab
-	triangle(int vertex1, int vertex2, int vertex3);
-	triangle();
+	triangle(matlab* engine, ptr_point vertex1, ptr_point vertex2, ptr_point vertex3, size_t cur_rec_depth=0);
+	triangle(matlab* engine,size_t cur_rec_depth);
+
+
+	//returns the v-th vertex[0-2] of the triangle
+	point operator()(size_t v);
 
 	void update_subtri();
+	triangle& sub_tri(size_t t);
 
-	//return vth vertex
-	int get_vertex(int v);
-	point get_vertex_value(int v);
-	void set_vertex_values( ptr_point v1, ptr_point v2, ptr_point v3 );
-	void set_shadow(bool s);
+	void set_vertex_values( ptr_point vertex1, ptr_point vertex2, ptr_point vertex3);
 	bool contains(double x, double y);
+	bool contains(point xy);
 	bool intersects(triangle* t);
-	point center;
+	point get_center();
 private:
-	//store index like matlab
-	int vertex_index[3];
-	ptr_point vertex_value[3];
+	ptr_point m_vertex_list[3];
 	
-	bool m_shadow;
-	 
+	point m_center;
 	//always 4 subriangles
-	triangle* sub_tri;
+	triangle** m_sub_tri;
+
+	//need this so as to be able to call matlab helper functions
+	matlab* m_engine;
+
+	//set the number of sub triangles
+	size_t m_cur_rec_depth;
 };

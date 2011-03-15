@@ -29,42 +29,47 @@
 
 #include "triangle.h"
 
-triangle::triangle( int vertex1, int vertex2, int vertex3)
+triangle::triangle(matlab* engine,  ptr_point vertex1, ptr_point vertex2, ptr_point vertex3,size_t cur_rec_depth/*=0*/)
 {
-	vertex_index[0] = vertex1;
-	vertex_index[1] = vertex2;
-	vertex_index[2] = vertex3;
+	m_engine = engine;
+	m_cur_rec_depth = cur_rec_depth+1;
+// 	m_sub_tri[0] = NULL;
+// 	m_sub_tri[1] = NULL;
+// 	m_sub_tri[2] = NULL;
+// 	m_sub_tri[3] = NULL;
 
-	m_shadow = false;
-	sub_tri = NULL;
+	set_vertex_values(vertex1,vertex2, vertex3);
+
+	if(cur_rec_depth == 0)
+		update_subtri();
+	else
+	{
+		for(int i = 0;i<4;i++)
+			m_sub_tri[i] = NULL;
+	}
 }
 
-triangle::triangle()
+triangle::triangle(matlab* engine,size_t cur_rec_depth)
 {
-	m_shadow = false;
-	sub_tri = NULL;
-}
-int triangle::get_vertex( int v )
-{
-	//add boundary check here
-	return (vertex_index[v]);
+	m_sub_tri = NULL;
+
+	m_cur_rec_depth = cur_rec_depth+1;
+	m_engine = engine;
+
 }
 
-void triangle::set_shadow( bool s )
-{
-	m_shadow = s;
-}
+
 
 bool triangle::contains( double x, double y )
 {
-	double x1 = *(vertex_value[0].x);
-	double y1 = *(vertex_value[0].y);
+	double x1 = *(m_vertex_list[0].x);
+	double y1 = *(m_vertex_list[0].y);
 
-	double x2 = *(vertex_value[1].y);
-	double y2 = *(vertex_value[1].x);
+	double x2 = *(m_vertex_list[1].y);
+	double y2 = *(m_vertex_list[1].x);
 
-	double x3 = *(vertex_value[2].x);
-	double y3 = *(vertex_value[2].y);
+	double x3 = *(m_vertex_list[2].x);
+	double y3 = *(m_vertex_list[2].y);
 
 	double Area_PP1P2  = 0.5 *abs(x*y1-x*y2+x1*y2-x1*y+x2*y-x2*y1);
 	double Area_PP2P3  = 0.5 *abs(x*y2-x*y3+x2*y3-x2*y+x3*y-x3*y2);
@@ -73,96 +78,95 @@ bool triangle::contains( double x, double y )
 
 	double areasum = Area_PP1P2 + Area_PP2P3 + Area_PP3P1;
 	if( abs(areasum - Area_P1P2P3) < 0.0001)
-	{
 		return true;
-	}
-	else//check subtriangle1
-	{
-		if(sub_tri) //need to stop the recursion
-		{
-			if( sub_tri[0].contains(x,y) || 
-				sub_tri[1].contains(x,y) ||
-				sub_tri[2].contains(x,y) ||
-				sub_tri[3].contains(x,y))
-				return true;
-		}
-		
+	else
 		return false;
 
-	}
 }
 
-void triangle::set_vertex_values( ptr_point v1, ptr_point v2, ptr_point v3 )
+bool triangle::contains( point xy )
 {
-	vertex_value[0].x = v1.x;
-	vertex_value[0].y = v1.y;
-	vertex_value[0].z = v1.z;
-
-	vertex_value[1].x = v2.x;
-	vertex_value[1].y = v2.y;
-	vertex_value[1].z = v2.z;
-
-	vertex_value[2].x = v3.x;
-	vertex_value[2].y = v3.y;
-	vertex_value[2].z = v3.z;
-
+	return contains(xy.x,xy.y);
 }
 
-point triangle::get_vertex_value( int v )
+void triangle::set_vertex_values( ptr_point vertex1, ptr_point vertex2,ptr_point vertex3)
 {
-	point p;
-	p.x = *(vertex_value[v].x);
-	p.y = *(vertex_value[v].y);
-	p.z = *(vertex_value[v].z);
-	 
-	return p;
+	m_vertex_list[0].x = vertex1.x;
+	m_vertex_list[0].y = vertex1.y;
+//	m_vertex_list[0].z = vertex1.z;
+
+	m_vertex_list[1].x = vertex2.x;
+	m_vertex_list[1].y = vertex2.y;
+//	m_vertex_list[1].z = vertex2.z;
+
+	m_vertex_list[2].x = vertex3.x;
+	m_vertex_list[2].y = vertex3.y;
+//	m_vertex_list[2].z = vertex3.z;
+
+	arma::mat c(3,3);
+	c << *(m_vertex_list[0].x) << *(m_vertex_list[0].y) << 0 << arma::endr
+	  << *(m_vertex_list[1].x) << *(m_vertex_list[1].y) << 0 << arma::endr
+	  << *(m_vertex_list[2].x) << *(m_vertex_list[2].y) << 0 << arma::endr;
+	
+	m_engine->put_double_matrix("t_set",&c);
+	m_engine->evaluate("c=tri_center( [t_set(1,1) t_set(1,2) t_set(1,3)],[t_set(2,1) t_set(2,2) t_set(2,3)],[t_set(3,1) t_set(3,2) t_set(3,3)],'circumcenter')");
+	arma::vec* pos = m_engine->get_double_vector("c");
+
+	m_center.x = (*pos)(0);
+	m_center.y = (*pos)(1);
+//	m_center.z = (*pos)(2);
 }
 
 void triangle::update_subtri()
 {
 	int longest;
- 	if (sub_tri)
- 		delete[] sub_tri;	
-// 	
-
-	sub_tri = new triangle[4]();
+//  	if (m_sub_tri)
+//  		delete[] m_sub_tri;	
+	
 
 	//only one level of recursion at the moment
-	for(int i = 0; i<3;i++)
-		sub_tri->sub_tri=NULL;
+	// set each sub
+	m_sub_tri = new triangle*[4];
+	for(int i = 0; i<4;i++)
+	{
+		m_sub_tri[i] = new triangle(m_engine,m_cur_rec_depth);
+		
+
+		//this->m_sub_tri[i]->m_cur_rec_depth = this->m_cur_rec_depth+1;
+	}
 
 
 	arma::vec l_sides(3);
 	//0-1
-	l_sides[0] = sqrt( (*(vertex_value[0].x)-*(vertex_value[1].x))*(*(vertex_value[0].x)-*(vertex_value[1].x)) + ((*(vertex_value[0].y)-*(vertex_value[1].y))*(*(vertex_value[0].y)-*(vertex_value[1].y))) * 1.0);
+	l_sides[0] = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[1].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[1].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[1].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[1].y))) * 1.0);
 	//1-2
-	l_sides[1] = sqrt( (*(vertex_value[1].x)-*(vertex_value[2].x))*(*(vertex_value[1].x)-*(vertex_value[2].x)) + ((*(vertex_value[1].y)-*(vertex_value[2].y))*(*(vertex_value[1].y)-*(vertex_value[2].y)))* 1.0);
+	l_sides[1] = sqrt( (*(m_vertex_list[1].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[1].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[1].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[1].y)-*(m_vertex_list[2].y)))* 1.0);
 	//0-2
-	l_sides[2] = sqrt( (*(vertex_value[0].x)-*(vertex_value[2].x))*(*(vertex_value[0].x)-*(vertex_value[2].x)) + ((*(vertex_value[0].y)-*(vertex_value[2].y))*(*(vertex_value[0].y)-*(vertex_value[2].y)))* 1.0);
+	l_sides[2] = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[2].y)))* 1.0);
 
 	if(l_sides[0] > l_sides[1] || l_sides[0] > l_sides[2])
 	{
 		longest = 0;
 		//midpoint of the longest edge (which is 0-1)
 		point *midpt_01 = new point;
-		midpt_01->x = sqrt( (*(vertex_value[0].x)-*(vertex_value[1].x))*(*(vertex_value[0].x)-*(vertex_value[1].x)) + ((*(vertex_value[0].y)-*(vertex_value[1].y))*(*(vertex_value[0].y)-*(vertex_value[1].y))) * 1.0) /2.0;
-		double m = (*(vertex_value[1].y)-*(vertex_value[0].y))/(*(vertex_value[1].x)-*(vertex_value[0].x));
-		double b = *(vertex_value[0].y)-m**(vertex_value[0].x);
+		midpt_01->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[1].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[1].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[1].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[1].y))) * 1.0) /2.0;
+		double m = (*(m_vertex_list[1].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[1].x)-*(m_vertex_list[0].x));
+		double b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
 		midpt_01->y = m*midpt_01->x+b;
 
 
 		//midpoint of the opposite edge (which is 0-2)
 		point* midpt_02 = new point;
-		midpt_02->x = sqrt( (*(vertex_value[0].x)-*(vertex_value[2].x))*(*(vertex_value[0].x)-*(vertex_value[2].x)) + ((*(vertex_value[0].y)-*(vertex_value[2].y))*(*(vertex_value[0].y)-*(vertex_value[2].y))) * 1.0) /2.0;
-		m = (*(vertex_value[2].y)-*(vertex_value[0].y))/(*(vertex_value[2].x)-*(vertex_value[0].x));
-		b = *(vertex_value[0].y)-m**(vertex_value[0].x);
+		midpt_02->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
+		m = (*(m_vertex_list[2].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
+		b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
 		midpt_01->y = m*midpt_01->x+b;
 
 		//midpoint of the opposite edge2 (which is 1-2)
 		point* midpt_12 = new point;
-		midpt_12->x = sqrt( (*(vertex_value[1].x)-*(vertex_value[2].x))*(*(vertex_value[1].x)-*(vertex_value[2].x)) + ((*(vertex_value[1].y)-*(vertex_value[2].y))*(*(vertex_value[1].y)-*(vertex_value[2].y))) * 1.0) /2.0;
-		m = (*(vertex_value[2].y)-*(vertex_value[1].y))/(*(vertex_value[2].x)-*(vertex_value[0].x));
-		b = *(vertex_value[1].y)-m**(vertex_value[1].x);
+		midpt_12->x = sqrt( (*(m_vertex_list[1].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[1].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[1].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[1].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
+		m = (*(m_vertex_list[2].y)-*(m_vertex_list[1].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
+		b = *(m_vertex_list[1].y)-m**(m_vertex_list[1].x);
 		midpt_12->y = m*midpt_12->x+b;
 
 		//have 4 sub triangles now:
@@ -174,27 +178,27 @@ void triangle::update_subtri()
 
 		//t1 = 0-01-02-01
 		ptr_point v1;
-		v1.x = vertex_value[0].x;
-		v1.y = vertex_value[0].y;
+		v1.x = m_vertex_list[0].x;
+		v1.y = m_vertex_list[0].y;
 		ptr_point v2;
 		v2.x = &(midpt_01->x);
 		v2.y = &(midpt_01->y);	
 		ptr_point v3;
 		v3.x = &(midpt_02->x);
 		v3.y = &(midpt_02->y);
-		sub_tri[0].set_vertex_values(v1,v2,v3);
+		m_sub_tri[0]->set_vertex_values(v1,v2,v3);
 
 		//t2 = 01-2-02-01
 		//ptr_point v1;
 		v1.x = &(midpt_01->x);
 		v1.y = &(midpt_01->y);
 		//ptr_point v2;
-		v2.x = vertex_value[2].x;
-		v2.y = vertex_value[2].y;
+		v2.x = m_vertex_list[2].x;
+		v2.y = m_vertex_list[2].y;
 		//ptr_point v3;
 		v3.x = &(midpt_02->x);
 		v3.y = &(midpt_02->y);
-		sub_tri[1].set_vertex_values(v1,v2,v3);
+		m_sub_tri[1]->set_vertex_values(v1,v2,v3);
 
 		//t3 = 01-12-2-01
 		//ptr_point v1;
@@ -204,21 +208,21 @@ void triangle::update_subtri()
 		v2.x = &(midpt_12->x);
 		v2.y = &(midpt_12->y);
 		//ptr_point v3;
-		v3.x = vertex_value[2].x;
-		v3.y = vertex_value[2].y;
-		sub_tri[2].set_vertex_values(v1,v2,v3);
+		v3.x = m_vertex_list[2].x;
+		v3.y = m_vertex_list[2].y;
+		m_sub_tri[2]->set_vertex_values(v1,v2,v3);
 
 		//t4 = 01-1-12-01
 		//v1;
 		v1.x = &(midpt_01->x);
 		v1.y = &(midpt_01->y);
 		//ptr_point v2;
-		v2.x = vertex_value[1].x;
-		v2.y = vertex_value[1].y;
+		v2.x = m_vertex_list[1].x;
+		v2.y = m_vertex_list[1].y;
 		//ptr_point v3;
 		v3.x = &(midpt_12->x);
 		v3.y = &(midpt_12->y);
-		sub_tri[3].set_vertex_values(v1,v2,v3);
+		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
 
 		
 
@@ -229,24 +233,24 @@ void triangle::update_subtri()
 
 		//midpoint of the longest edge (which is 1-2)
 		point* midpt_12 = new point;
-		midpt_12->x = sqrt( (*(vertex_value[1].x)-*(vertex_value[2].x))*(*(vertex_value[1].x)-*(vertex_value[2].x)) + ((*(vertex_value[1].y)-*(vertex_value[2].y))*(*(vertex_value[1].y)-*(vertex_value[2].y))) * 1.0) /2.0;
-		double m = (*(vertex_value[2].y)-*(vertex_value[1].y))/(*(vertex_value[2].x)-*(vertex_value[0].x));
-		double b = *(vertex_value[1].y)-m**(vertex_value[1].x);
+		midpt_12->x = sqrt( (*(m_vertex_list[1].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[1].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[1].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[1].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
+		double m = (*(m_vertex_list[2].y)-*(m_vertex_list[1].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
+		double b = *(m_vertex_list[1].y)-m**(m_vertex_list[1].x);
 		midpt_12->y = m*midpt_12->x+b;
 
 
 		//midpoint of the opposite edge (which is 0-1)
 		point* midpt_01 = new point;
-		midpt_01->x = sqrt( (*(vertex_value[0].x)-*(vertex_value[1].x))*(*(vertex_value[0].x)-*(vertex_value[1].x)) + ((*(vertex_value[0].y)-*(vertex_value[1].y))*(*(vertex_value[0].y)-*(vertex_value[1].y))) * 1.0) /2.0;
-		m = (*(vertex_value[1].y)-*(vertex_value[0].y))/(*(vertex_value[1].x)-*(vertex_value[0].x));
-		b = *(vertex_value[0].y)-m**(vertex_value[0].x);
+		midpt_01->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[1].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[1].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[1].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[1].y))) * 1.0) /2.0;
+		m = (*(m_vertex_list[1].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[1].x)-*(m_vertex_list[0].x));
+		b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
 		midpt_01->y = m*midpt_01->x+b;
 
 		//midpoint of the opposite edge2 (which is 0-2)
 		point* midpt_02 = new point;
-		midpt_02->x = sqrt( (*(vertex_value[0].x)-*(vertex_value[2].x))*(*(vertex_value[0].x)-*(vertex_value[2].x)) + ((*(vertex_value[0].y)-*(vertex_value[2].y))*(*(vertex_value[0].y)-*(vertex_value[2].y))) * 1.0) /2.0;
-		m = (*(vertex_value[2].y)-*(vertex_value[0].y))/(*(vertex_value[2].x)-*(vertex_value[0].x));
-		b = *(vertex_value[0].y)-m**(vertex_value[0].x);
+		midpt_02->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
+		m = (*(m_vertex_list[2].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
+		b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
 		midpt_02->y = m*midpt_02->x+b;
 
 		//have 4 sub triangles now:
@@ -258,51 +262,51 @@ void triangle::update_subtri()
 
 		//t1 = 0-01-12-0
 		ptr_point v1;
-		v1.x = vertex_value[0].x;
-		v1.y = vertex_value[0].y;
+		v1.x = m_vertex_list[0].x;
+		v1.y = m_vertex_list[0].y;
 		ptr_point v2;
 		v2.x = &(midpt_01->x);
 		v2.y = &(midpt_01->y);	
 		ptr_point v3;
 		v3.x = &(midpt_12->x);
 		v3.y = &(midpt_12->y);
-		sub_tri[0].set_vertex_values(v1,v2,v3);
+		m_sub_tri[0]->set_vertex_values(v1,v2,v3);
 
 		//t2 = 01-1-12-01
-//		ptr_point v1;
+
 		v1.x = &(midpt_01->x);
 		v1.y = &(midpt_01->y);
-//		ptr_point v2;
-		v2.x = vertex_value[1].x;
-		v2.y = vertex_value[1].y;	
-//		ptr_point v3;
+
+		v2.x = m_vertex_list[1].x;
+		v2.y = m_vertex_list[1].y;	
+
 		v3.x = &(midpt_12->x);
 		v3.y = &(midpt_12->y);
-		sub_tri[1].set_vertex_values(v1,v2,v3);
+		m_sub_tri[1]->set_vertex_values(v1,v2,v3);
 
 		//t3 = 12-2-02-12
-//		ptr_point v1;
+
 		v1.x = &(midpt_12->x);
 		v1.y = &(midpt_12->y);
-//		ptr_point v2;
-		v2.x = vertex_value[2].x;
-		v2.y = vertex_value[2].y;	
-//		ptr_point v3;
+
+		v2.x = m_vertex_list[2].x;
+		v2.y = m_vertex_list[2].y;	
+
 		v3.x = &(midpt_02->x);
 		v3.y = &(midpt_02->y);
-		sub_tri[2].set_vertex_values(v1,v2,v3);
+		m_sub_tri[2]->set_vertex_values(v1,v2,v3);
 
 		//t4 = 0-12-02-0
-//		ptr_point v1;
-		v1.x = vertex_value[0].x;
-		v1.y = vertex_value[0].y;
-//		ptr_point v2;
+
+		v1.x = m_vertex_list[0].x;
+		v1.y = m_vertex_list[0].y;
+
 		v2.x = &(midpt_12->x);
 		v2.y = &(midpt_12->y);	
-//		ptr_point v3;
+
 		v3.x = &(midpt_02->x);
 		v3.y = &(midpt_02->y);
-		sub_tri[3].set_vertex_values(v1,v2,v3);
+		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
 
 
 	}
@@ -312,24 +316,24 @@ void triangle::update_subtri()
 
 		//midpoint of the longest edge (which is 0-2)
 		point* midpt_02 = new point;
-		midpt_02->x = sqrt( (*(vertex_value[0].x)-*(vertex_value[2].x))*(*(vertex_value[0].x)-*(vertex_value[1].x)) + ((*(vertex_value[0].y)-*(vertex_value[2].y))*(*(vertex_value[0].y)-*(vertex_value[2].y))) * 1.0) /2.0;
-		double m = (*(vertex_value[2].y)-*(vertex_value[0].y))/(*(vertex_value[2].x)-*(vertex_value[0].x));
-		double b = *(vertex_value[0].y)-m**(vertex_value[0].x);
+		midpt_02->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[1].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
+		double m = (*(m_vertex_list[2].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[0].x));
+		double b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
 		midpt_02->y = m*midpt_02->x+b;
 
 
 		//midpoint of the opposite edge (which is 0-1)
 		point* midpt_01 = new point;
-		midpt_01->x = sqrt( (*(vertex_value[0].x)-*(vertex_value[2].x))*(*(vertex_value[0].x)-*(vertex_value[1].x)) + ((*(vertex_value[0].y)-*(vertex_value[1].y))*(*(vertex_value[0].y)-*(vertex_value[1].y))) * 1.0) /2.0;
-		m = (*(vertex_value[1].y)-*(vertex_value[0].y))/(*(vertex_value[1].x)-*(vertex_value[0].x));
-		b = *(vertex_value[0].y)-m**(vertex_value[0].x);
+		midpt_01->x = sqrt( (*(m_vertex_list[0].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[0].x)-*(m_vertex_list[1].x)) + ((*(m_vertex_list[0].y)-*(m_vertex_list[1].y))*(*(m_vertex_list[0].y)-*(m_vertex_list[1].y))) * 1.0) /2.0;
+		m = (*(m_vertex_list[1].y)-*(m_vertex_list[0].y))/(*(m_vertex_list[1].x)-*(m_vertex_list[0].x));
+		b = *(m_vertex_list[0].y)-m**(m_vertex_list[0].x);
 		midpt_01->y = m*midpt_01->x+b;
 
 		//midpoint of the opposite edge2 (which is 1-2)
 		point* midpt_12 = new point;
-		midpt_12->x = sqrt( (*(vertex_value[1].x)-*(vertex_value[2].x))*(*(vertex_value[1].x)-*(vertex_value[2].x)) + ((*(vertex_value[1].y)-*(vertex_value[2].y))*(*(vertex_value[1].y)-*(vertex_value[2].y))) * 1.0) /2.0;
-		m = (*(vertex_value[2].y)-*(vertex_value[1].y))/(*(vertex_value[2].x)-*(vertex_value[1].x));
-		b = *(vertex_value[1].y)-m**(vertex_value[1].x);
+		midpt_12->x = sqrt( (*(m_vertex_list[1].x)-*(m_vertex_list[2].x))*(*(m_vertex_list[1].x)-*(m_vertex_list[2].x)) + ((*(m_vertex_list[1].y)-*(m_vertex_list[2].y))*(*(m_vertex_list[1].y)-*(m_vertex_list[2].y))) * 1.0) /2.0;
+		m = (*(m_vertex_list[2].y)-*(m_vertex_list[1].y))/(*(m_vertex_list[2].x)-*(m_vertex_list[1].x));
+		b = *(m_vertex_list[1].y)-m**(m_vertex_list[1].x);
 		midpt_12->y = m*midpt_12->x+b;
 
 		//have 4 sub triangles now:
@@ -341,51 +345,50 @@ void triangle::update_subtri()
 
 		//t1 =0-01-02
 		ptr_point v1;
-		v1.x = vertex_value[0].x;
-		v1.y = vertex_value[0].y;
+		v1.x = m_vertex_list[0].x;
+		v1.y = m_vertex_list[0].y;
 		ptr_point v2;
 		v2.x = &(midpt_01->x);
 		v2.y = &(midpt_01->y);	
 		ptr_point v3;
 		v3.x = &(midpt_02->x);
 		v3.y = &(midpt_02->y);
-		sub_tri[0].set_vertex_values(v1,v2,v3);
+		m_sub_tri[0]->set_vertex_values(v1,v2,v3);
 
 		//t2 = 01 -1 -02
-//		ptr_point v1;
+
 		v1.x = &(midpt_01->x);
 		v1.y = &(midpt_01->y);
-//		ptr_point v2;
-		v2.x = vertex_value[1].x;
-		v2.y = vertex_value[1].y;
-//		ptr_point v3;
+
+		v2.x = m_vertex_list[1].x;
+		v2.y = m_vertex_list[1].y;
+
 		v3.x = &(midpt_02->x);
 		v3.y = &(midpt_02->y);
-		sub_tri[1].set_vertex_values(v1,v2,v3);
+		m_sub_tri[1]->set_vertex_values(v1,v2,v3);
 
 		//t3 = 1 - 12-02
-//		ptr_point v1;
-		v1.x = vertex_value[1].x;
-		v1.y = vertex_value[1].y;
-//		ptr_point v2;
+
+		v1.x = m_vertex_list[1].x;
+		v1.y = m_vertex_list[1].y;
+
 		v2.x = &(midpt_12->x);
 		v2.y = &(midpt_12->y);
-//		ptr_point v3;
+
 		v3.x = &(midpt_02->x);
 		v3.y = &(midpt_02->y);
-		sub_tri[2].set_vertex_values(v1,v2,v3);
+		m_sub_tri[2]->set_vertex_values(v1,v2,v3);
 
 		//t4 = 12 - 2 -02
-//		ptr_point v1;
 		v1.x = &(midpt_12->x);
 		v1.y = &(midpt_12->y);
-//		ptr_point v2;
-		v2.x = vertex_value[2].x;
-		v2.y = vertex_value[2].y;
-//		ptr_point v3;
+
+		v2.x = m_vertex_list[2].x;
+		v2.y = m_vertex_list[2].y;
+
 		v3.x = &(midpt_02->x);
 		v3.y = &(midpt_02->y);
-		sub_tri[3].set_vertex_values(v1,v2,v3);
+		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
 
 	}	
 		
@@ -393,17 +396,44 @@ void triangle::update_subtri()
 
 
 }
+triangle& triangle::sub_tri(size_t t)
+{
+	return *(m_sub_tri[t]);
+}
 
 bool triangle::intersects( triangle* t )
 {
-	//for each sub-triangle of t
-// 	for(int i = 0; i<4; i++)
-// 	{
-// 		if (this->contains(t->get_vertex_value(0).x,t->get_vertex_value(0).y) ||
-// 			this->contains(t->get_vertex_value(1).x,t->get_vertex_value(1).y) ||
-// 			this->contains(t->get_vertex_value(2).x,t->get_vertex_value(2).y) ||
-// 			this->contains(t->sub_tri[0].get_vertex_value(0).x,t->sub_tri[0].get_vertex_value(0).y) ||
-// 
-// 	}
-return false;
+	bool intersec=false;
+	if (m_sub_tri)
+	{
+		//for each sub-triangle of t
+		for(int i =0 ; i<4;i++)
+		{
+			if ( intersec == false && m_sub_tri[i]->intersects(t) == true)
+				intersec = true;
+		}
+	}
+	else
+	{
+		if(this->contains(t->get_center()))
+			return true;
+		else
+			return false;
+	}
+
+	return intersec;
+}
+
+point triangle::operator()(size_t v )
+{
+	point p;
+	p.x = *(m_vertex_list[v].x);
+	p.y = *(m_vertex_list[v].y);
+//	p.z = *(m_vertex_list[v].z);
+	return p;
+}
+
+point triangle::get_center()
+{
+	return m_center;
 }

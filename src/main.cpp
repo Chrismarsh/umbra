@@ -55,8 +55,8 @@ using namespace boost;
 int main()
 
 {
-	try
-	{
+// 	try
+// 	{
 	
 		matlab* engine = new matlab();
 		graphics* gfx = new graphics(engine);
@@ -76,62 +76,24 @@ int main()
 
 		engine->evaluate("clear square_nodes_5m");
 
-
-		int num_nodes = xyz->n_rows;
-		arma::mat rot_domain(num_nodes,3);
-
 		//perform the triangulation
 		std::cout << "Creating triangulation..." <<std::endl;
 		triangulation* tri = new triangulation(engine);
 		tri->create_delaunay(xyz->unsafe_col(0),xyz->unsafe_col(1));
 		std::cout <<"Finished!" <<std::endl;
 
-		//assign the "real values" too
-		for (int i = 0; i<tri->get_size();i++)
-		{
-			triangle& t = *(tri->get_ptr(i));
 
-			int v1 = t.get_vertex(0)-1;
-			int v2 = t.get_vertex(1)-1;
-			int v3 = t.get_vertex(2)-1;
-			
-			ptr_point p1;
-			p1.x = &rot_domain(v1,0);
-			p1.y = &rot_domain(v1,1);
-			p1.z = &rot_domain(v1,2);
-
-			ptr_point p2;
-			p2.x = &rot_domain(v2,0);
-			p2.y = &rot_domain(v2,1);
-			p2.z = &rot_domain(v2,2);
-
-			ptr_point p3;
-			p3.x = &rot_domain(v3,0);
-			p3.y = &rot_domain(v3,1);
-			p3.z = &rot_domain(v3,2);
-
-			t.set_vertex_values(p1,p2,p3);
-		}
-
-//send back to matlab for testing
-		std::cout << "Sending back to matlab..." <<std::endl;
-		mxArray*  mxTri = mxCreateDoubleMatrix(tri->get_size(),3,mxREAL);
-		double* mxTri_ptr = mxGetPr(mxTri);
-
-		
-		for (int i = 0; i<tri->get_size();i++)
-		{
-			arma::uvec v = tri->get_tri(i);
-
-			mxTri_ptr[i+0*tri->get_size()] = v[0];
-			mxTri_ptr[i+1*tri->get_size()] = v[1];
-			mxTri_ptr[i+2*tri->get_size()] = v[2];
-		}
-
-		engine->put("tri",mxTri);
+		//send 
+		std::cout << "Sending triangulation to matlab..." <<std::endl;
+		engine->put_double_matrix("tri",&(arma::conv_to<arma::mat>::from(tri->get_tri_index())));
 		engine->put_double_matrix("mxDomain",xyz);
-		mxDestroyArray(mxTri);
-		mxTri_ptr = NULL;
+
+
+		int num_nodes = xyz->n_rows;
+		arma::mat rot_domain(num_nodes,3);
+
+		//need to update what the triangle data points to, as it will be by default initialized to that of the triangulation data
+		tri->set_vertex_data(rot_domain);
 
 		//start up time
 		posix_time::ptime time (gregorian::date(2011,gregorian::Mar,6), 
@@ -155,7 +117,7 @@ int main()
 		engine->evaluate("ff=figure; set(gcf,'units','normalized','outerposition',[0 0 1 1]);");
 		engine->evaluate("set(ff,'Renderer','OpenGL')");
 
-		std::string viewpoint = "basin";
+		std::string viewpoint = "sun";
 		//for as basin
 		if(viewpoint == "basin")
 			engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
@@ -227,53 +189,24 @@ int main()
 				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20);
 			
 				//not a great way of doing this, but it's compatible with matlab's plotting
-				arma::vec shadows(xyz->n_rows);
+				arma::vec shadows(tri->get_num_tri());
 				shadows.ones();
 
+				std::cout <<"Building BBR..." <<std::endl;
 				//for each triangle
-				for(int i = 0; i< tri->get_size();i++)
+				for(size_t i = 0; i< tri->get_num_tri();i++)
 				{
-					arma::mat c(3,3);
-					triangle* t = tri->get_ptr(i);
-					c << rot_domain(t->get_vertex(0)-1,0) << rot_domain(t->get_vertex(0)-1,1) << rot_domain(t->get_vertex(0)-1,2) << arma::endr
-					  << rot_domain(t->get_vertex(1)-1,0) << rot_domain(t->get_vertex(1)-1,1) << rot_domain(t->get_vertex(1)-1,2) << arma::endr
-					  << rot_domain(t->get_vertex(2)-1,0) << rot_domain(t->get_vertex(2)-1,1) << rot_domain(t->get_vertex(2)-1,2) << arma::endr;
-
-					engine->put_double_matrix("t_set",&c);
-					engine->evaluate("c=tri_center( [t_set(1,1) t_set(1,2) t_set(1,3)],[t_set(2,1) t_set(2,2) t_set(2,3)],[t_set(3,1) t_set(3,2) t_set(3,3)],'circumcenter')");
-					arma::vec* pos = engine->get_double_vector("c");
-
-					tri->get_ptr(i)->center.x = (*pos)(0);
-					tri->get_ptr(i)->center.y = (*pos)(1);
-					tri->get_ptr(i)->center.z = (*pos)(2);
-
-					ptr_point v1;
-					v1.x = &rot_domain(t->get_vertex(0)-1,0);
-					v1.y = &rot_domain(t->get_vertex(0)-1,1);
-					v1.z = &rot_domain(t->get_vertex(0)-1,2);
-
-					ptr_point v2;
-					v2.x = &rot_domain(t->get_vertex(1)-1,0);
-					v2.y = &rot_domain(t->get_vertex(1)-1,1);
-					v2.z = &rot_domain(t->get_vertex(1)-1,2);
-
-					ptr_point v3;
-					v3.x = &rot_domain(t->get_vertex(2)-1,0);
-					v3.y = &rot_domain(t->get_vertex(2)-1,1);
-					v3.z = &rot_domain(t->get_vertex(2)-1,2);
-
-
-					tri->get_ptr(i)->set_vertex_values(v1,v2,v3);
-					tri->get_ptr(i)->update_subtri();
-
+					//for each bounding box segment
 					for(int j=0; j < BBR->n_segments;j++)
 					{
-						arma::uvec v = tri->get_tri(i);
-						if (  BBR->pt_in_rect(rot_domain(v(0)-1,0),rot_domain(v(0)-1,1), BBR->get_rect(j)) || //pt1
-							  BBR->pt_in_rect(rot_domain(v(1)-1,0),rot_domain(v(1)-1,1), BBR->get_rect(j)) || //pt2
-							  BBR->pt_in_rect(rot_domain(v(2)-1,0),rot_domain(v(2)-1,1), BBR->get_rect(j)) )  //pt3
+						triangle& t = tri->operator()(i);
+
+						if (  BBR->pt_in_rect(t(0).x, t(0).y, BBR->get_rect(j)) || //pt1
+							  BBR->pt_in_rect(t(1).x, t(1).y, BBR->get_rect(j)) || //pt2
+							  BBR->pt_in_rect(t(2).x, t(2).y, BBR->get_rect(j)) )  //pt3
 						{
-							BBR->get_rect(j)->triangles.push_back(tri->get_ptr(i));
+							BBR->get_rect(j)->triangles.push_back(&tri->operator()(i));
+							BBR->get_rect(j)->m_globalID.push_back(i);
 							//shadows(i)=j;
 						}
 					}
@@ -281,8 +214,9 @@ int main()
 
 				std::cout << "Generating shadows" << std::endl;
 
+				//shadows++;
+				//need to increase all the indexes by one
 
-				
 
 				//for each rect
 				for(int i = 0; i<BBR->n_segments; i++)
@@ -293,7 +227,6 @@ int main()
 					//for each triangle in each rect
 					for(int j=0; j<num_tri;j++)
 					{
-
 						//jth triangle
 						triangle* tj = (BBR->get_rect(i)->triangles.at(j));
 
@@ -303,21 +236,16 @@ int main()
 							//out current kth triangle
 							triangle* tk = (BBR->get_rect(i)->triangles.at(k));
 
-							if(j != k)// && tj->get_vertex_value(0).z > tk->get_vertex_value(0).z)
+							if(j != k)// && rot_domain(tri) > tk->get_vertex_value(0).z)
 							{
 								//check each vertex
-								if (tk->contains(tj->get_vertex_value(0).x,tj->get_vertex_value(0).y) ||
-									tk->contains(tj->get_vertex_value(1).x,tj->get_vertex_value(1).y) ||
-									tk->contains(tj->get_vertex_value(2).x,tj->get_vertex_value(2).y) ||
-									tk->contains(tj->center.x,tj->center.y))
+								if(tj->intersects(tk))
 								{
-										tk->set_shadow(true);
-										shadows(tk->get_vertex(0)-1) = 1.0;
-
+										shadows(BBR->get_rect(i)->m_globalID[k]) = 1.0;
 								}
 								else
 								{
-										shadows(tk->get_vertex(0)-1) = 0.0;
+										shadows(BBR->get_rect(i)->m_globalID[k]) = 0.0;
 								}
 							}
 
@@ -327,24 +255,24 @@ int main()
 
 				}
 
-				double  lol = shadows(9999);
+
 				engine->put_double_vector("shadows",&shadows);
 
 				//plot BBR
-// 				gfx->hold_on();
-// 				gfx->plot_line(BBR->bbx,BBR->bby,"'color','red'");
-// 				for (int i = 0; i<BBR->n_segments;i++)
-// 				{
-// 					gfx->plot_line(&(BBR->get_rect(i)->coord->unsafe_col(0)),&(BBR->get_rect(i)->coord->unsafe_col(1)));
-// 				}
-// 				gfx->hold_off();
+				gfx->hold_on();
+				gfx->plot_line(BBR->bbx,BBR->bby,"'color','red'");
+				for (int i = 0; i<BBR->n_segments;i++)
+				{
+					gfx->plot_line(&(BBR->get_rect(i)->coord->unsafe_col(0)),&(BBR->get_rect(i)->coord->unsafe_col(1)));
+				}
+				gfx->hold_off();
 
-			
+				//for basin view
+				engine->put_double_matrix("mxRot",&rot_domain);
 				//plot
 				if(viewpoint=="basin")
 				{
-					//for basin view
-					engine->put_double_matrix("mxRot",&rot_domain);
+					
 					if(handle == -1)
 						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows");
 					else
@@ -386,12 +314,12 @@ int main()
 
 		_getch();
 		engine->stop();
-	}
-	catch(std::exception e)
-		{
-			std::cout << e.what() << std::endl;
-			_getch();
-		}
+// 	}
+// 	catch(std::exception e)
+// 		{
+// 			std::cout << e.what() << std::endl;
+// 			_getch();
+// 		}
 		
 	
 	return 0;

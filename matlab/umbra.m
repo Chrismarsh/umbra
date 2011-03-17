@@ -29,7 +29,7 @@
 function umbra()
 
 %basin or sun
-viewpoint='sun';
+viewpoint='basin';
 
 load square_nodes_5m.csv
 

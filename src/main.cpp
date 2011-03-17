@@ -55,9 +55,27 @@ using namespace boost;
 int main()
 
 {
-// 	try
-// 	{
+
+// 	
+// 	point p1,p2,p3;
+// 	p1.x=0;
+// 	p1.y=0;
+// 
+// 	p2.x=2;
+// 	p2.y=0;
+// 
+// 	p3.x=0;
+// 	p3.y=2;
+// 
+// 	triangle lol(p1,p2,p3);
+// 	bool inside = lol.contains(1.0,0.5);
+
 	
+	try
+	{
+		
+// 		std::cout << "Wait for debug attach" <<std::endl;
+// 		_getch();
 		matlab* engine = new matlab();
 		graphics* gfx = new graphics(engine);
 		engine->start();
@@ -93,8 +111,8 @@ int main()
 		arma::mat rot_domain(num_nodes,3);
 
 		//need to update what the triangle data points to, as it will be by default initialized to that of the triangulation data
-		tri->set_vertex_data(rot_domain);
-
+// 		tri->set_vertex_data(rot_domain);
+ 
 		//start up time
 		posix_time::ptime time (gregorian::date(2011,gregorian::Mar,6), 
 							posix_time::hours(6)); //start at 6am
@@ -117,7 +135,7 @@ int main()
 		engine->evaluate("ff=figure; set(gcf,'units','normalized','outerposition',[0 0 1 1]);");
 		engine->evaluate("set(ff,'Renderer','OpenGL')");
 
-		std::string viewpoint = "sun";
+		std::string viewpoint = "basin";
 		//for as basin
 		if(viewpoint == "basin")
 			engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
@@ -144,9 +162,9 @@ int main()
 										ss.str() + std::string("'") +
 										std::string(",50.960873, -115.187890,0);"));
 
-			//holy LOLs. This is dangerous.
-			double Az = *(mxGetPr(engine->get("Az")));
-			double El = *(mxGetPr(engine->get("El")));
+
+			double Az = engine->get_scaler("Az");
+			double El = engine->get_scaler("El");
 
 			//euler rotation matrix K
 			arma::mat K; 
@@ -181,7 +199,8 @@ int main()
 					rot_domain(i,2)=coord(2);
 
 				}
-
+				//need to update what the triangle data points to, as it will be by default initialized to that of the triangulation data
+				tri->set_vertex_data(rot_domain);
 				engine->put_double_matrix("mxRot",&rot_domain);
 
 				//build bounding rect
@@ -190,7 +209,7 @@ int main()
 			
 				//not a great way of doing this, but it's compatible with matlab's plotting
 				arma::vec shadows(tri->get_num_tri());
-				shadows.ones();
+				shadows.zeros();
 
 				std::cout <<"Building BBR..." <<std::endl;
 				//for each triangle
@@ -214,9 +233,6 @@ int main()
 
 				std::cout << "Generating shadows" << std::endl;
 
-				//shadows++;
-				//need to increase all the indexes by one
-
 
 				//for each rect
 				for(int i = 0; i<BBR->n_segments; i++)
@@ -235,11 +251,20 @@ int main()
 						{
 							//out current kth triangle
 							triangle* tk = (BBR->get_rect(i)->triangles.at(k));
+							arma::uvec zj = tri->get_index(BBR->get_rect(i)->m_globalID[j]);
+							double z1 = rot_domain(zj(0)-1,2);
 
-							if(j != k)// && rot_domain(tri) > tk->get_vertex_value(0).z)
+							arma::uvec zk = tri->get_index(BBR->get_rect(i)->m_globalID[k]);
+							double z2 = rot_domain(zk(0)-1,2);
+
+
+							if(j != k 
+								&& shadows(BBR->get_rect(i)->m_globalID[k]) == 0.0 
+								&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) || 
+									 rot_domain(zj(0)-1,2) >  rot_domain(zk(1)-1,2) ||
+									 rot_domain(zj(0)-1,2) >  rot_domain(zk(2)-1,2)))
 							{
-								//check each vertex
-								if(tj->intersects(tk))
+								if(tk->intersects(tj))
 								{
 										shadows(BBR->get_rect(i)->m_globalID[k]) = 1.0;
 								}
@@ -259,13 +284,13 @@ int main()
 				engine->put_double_vector("shadows",&shadows);
 
 				//plot BBR
-				gfx->hold_on();
-				gfx->plot_line(BBR->bbx,BBR->bby,"'color','red'");
-				for (int i = 0; i<BBR->n_segments;i++)
-				{
-					gfx->plot_line(&(BBR->get_rect(i)->coord->unsafe_col(0)),&(BBR->get_rect(i)->coord->unsafe_col(1)));
-				}
-				gfx->hold_off();
+// 				gfx->hold_on();
+// 				gfx->plot_line(BBR->bbx,BBR->bby,"'color','red'");
+// 				for (int i = 0; i<BBR->n_segments;i++)
+// 				{
+// 					gfx->plot_line(&(BBR->get_rect(i)->coord->unsafe_col(0)),&(BBR->get_rect(i)->coord->unsafe_col(1)));
+// 				}
+// 				gfx->hold_off();
 
 				//for basin view
 				engine->put_double_matrix("mxRot",&rot_domain);
@@ -274,9 +299,9 @@ int main()
 				{
 					
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows");
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows(:)");
 					else
-						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","shadows");
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","shadows(:)");
 				}
 				else
 				{
@@ -314,12 +339,12 @@ int main()
 
 		_getch();
 		engine->stop();
-// 	}
-// 	catch(std::exception e)
-// 		{
-// 			std::cout << e.what() << std::endl;
-// 			_getch();
-// 		}
+	}
+	catch(std::exception e)
+		{
+			std::cout << e.what() << std::endl;
+			_getch();
+		}
 		
 	
 	return 0;

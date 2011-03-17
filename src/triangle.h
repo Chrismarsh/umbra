@@ -31,7 +31,7 @@
 
 #include <vector>
 #include <armadillo>
-
+#include <iostream>
 #include "point.h"
 
 class triangle
@@ -39,7 +39,7 @@ class triangle
 public:
 	//use xyz triples in the vector
 	//store the index like matlab
-	triangle( ptr_point vertex1, ptr_point vertex2, ptr_point vertex3, size_t cur_rec_depth=0);
+	triangle( point vertex1, point vertex2, point vertex3, size_t cur_rec_depth=0);
 	triangle(size_t cur_rec_depth);
 
 
@@ -49,13 +49,13 @@ public:
 	void update_subtri();
 	triangle& sub_tri(size_t t);
 
-	void set_vertex_values( ptr_point vertex1, ptr_point vertex2, ptr_point vertex3);
+	void set_vertex_values( point vertex1, point vertex2, point vertex3);
 	bool contains(double x, double y);
 	bool contains(point xy);
 	bool intersects(triangle* t);
 	point get_center();
 private:
-	ptr_point m_vertex_list[3];
+	point m_vertex_list[3];
 	
 	point m_center;
 	//always 4 subriangles
@@ -66,6 +66,6 @@ private:
 
 
 	//get the mid point of a line segment
-	point* midpoint(ptr_point* p1, ptr_point* p2);
+	point* midpoint(point& p1, point& p2);
 	point  calc_center(triangle* t);
 };

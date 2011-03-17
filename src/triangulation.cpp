@@ -79,17 +79,17 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y)
 				m_tri->operator()(i,1) = v2;
 				m_tri->operator()(i,2) = v3;
 
-				ptr_point vertex1,vertex2,vertex3;
-				vertex1.x = &x(v1-1);
-				vertex1.y = &y(v1-1);
+				point vertex1,vertex2,vertex3;
+				vertex1.x = x(v1-1);
+				vertex1.y = y(v1-1);
 			//	vertex1.z = &z(v1);
 
-				vertex2.x = &x(v2-1);
-				vertex2.y = &y(v2-1);
+				vertex2.x = x(v2-1);
+				vertex2.y = y(v2-1);
 			//	vertex2.z = &z(v2);
 
-				vertex3.x = &x(v3-1);
-				vertex3.y = &y(v3-1);
+				vertex3.x = x(v3-1);
+				vertex3.y = y(v3-1);
 			//	vertex3.z = &z(v3);
 
 				m_triangles.push_back(new triangle(vertex1,vertex2,vertex3));
@@ -153,18 +153,16 @@ void triangulation::set_vertex_data( arma::mat& data )
 		size_t v2 = m_tri->operator()(i,1);
 		size_t v3 = m_tri->operator()(i,2);
 
-		ptr_point vertex1,vertex2,vertex3;
-		vertex1.x = &data(v1-1,0);
-		vertex1.y = &data(v1-1,1);
-//		vertex1.z = &data(v1,2);
+		point vertex1,vertex2,vertex3;
+		vertex1.x = data(v1-1,0);
+		vertex1.y = data(v1-1,1);
 
-		vertex2.x = &data(v2-1,0);
-		vertex2.y = &data(v2-1,1);
-//		vertex2.z = &data(v2,2);
+		vertex2.x = data(v2-1,0);
+		vertex2.y = data(v2-1,1);
 
-		vertex3.x = &data(v3-1,0);
-		vertex3.y = &data(v3-1,1);
-//		vertex3.z = &data(v3,2);
+		vertex3.x = data(v3-1,0);
+		vertex3.y = data(v3-1,1);
+
 
 		m_triangles[i]->set_vertex_values(vertex1, vertex2, vertex3);
 	}

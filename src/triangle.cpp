@@ -373,25 +373,45 @@ triangle& triangle::sub_tri(size_t t)
 	return *(m_sub_tri[t]);
 }
 
-//does triangle t contain any of our sub points?
-bool triangle::intersects( triangle* t )
-{
-	bool crosing = false;
+/*does triangle t contain any of our sub points?*/
+// bool triangle::intersects( triangle* t )
+// {
+// 		bool crossing = false;
+// 		for(int i =0;i<4;i++)
+// 		{
+// 			if(t->contains(this->m_sub_tri[i]->get_center()))
+// 			 crossing = true;
+// 		}
+// 
+// 
+// 	if( t->contains(m_vertex_list[0]) ||
+// 		t->contains(m_vertex_list[1]) ||
+// 		t->contains(m_vertex_list[2]))
+// 	{
+// 		crossing = true;
+// 	}
+// 
+// 	return crossing;
+// }
 
-	for(int i = 0 ;i<4;i++)
+int triangle::intersects( triangle* t )
+{
+	int lfactor = 4;
+	for(int i =0;i<4;i++)
 	{
-		if( t->contains(this->m_sub_tri[i]->get_center()))
-			crosing = true;
+		if(t->contains(this->m_sub_tri[i]->get_center()))
+			lfactor--;
 	}
+
 
 // 	if( t->contains(m_vertex_list[0]) ||
 // 		t->contains(m_vertex_list[1]) ||
 // 		t->contains(m_vertex_list[2]))
 // 	{
-// 		crosing = true;
+// 		crossing = true;
 // 	}
 
-	return crosing;
+	return lfactor;
 }
 
 point triangle::operator()(size_t v )

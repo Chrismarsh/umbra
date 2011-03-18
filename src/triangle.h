@@ -52,7 +52,7 @@ public:
 	void set_vertex_values( point vertex1, point vertex2, point vertex3);
 	bool contains(double x, double y);
 	bool contains(point xy);
-	bool intersects(triangle* t);
+	int intersects(triangle* t);
 	point get_center();
 private:
 	point m_vertex_list[3];

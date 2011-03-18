@@ -56,21 +56,7 @@ int main()
 
 {
 
-// 	
-// 	point p1,p2,p3;
-// 	p1.x=0;
-// 	p1.y=0;
-// 
-// 	p2.x=2;
-// 	p2.y=0;
-// 
-// 	p3.x=0;
-// 	p3.y=2;
-// 
-// 	triangle lol(p1,p2,p3);
-// 	bool inside = lol.contains(1.0,0.5);
 
-	
 	try
 	{
 		
@@ -109,16 +95,13 @@ int main()
 
 		int num_nodes = xyz->n_rows;
 		arma::mat rot_domain(num_nodes,3);
-
-		//need to update what the triangle data points to, as it will be by default initialized to that of the triangulation data
-// 		tri->set_vertex_data(rot_domain);
  
 		//start up time
-		posix_time::ptime time (gregorian::date(2011,gregorian::Mar,6), 
-							posix_time::hours(6)); //start at 6am
+		posix_time::ptime time (gregorian::date(2010,gregorian::Sep,15), 
+							posix_time::hours(15)+posix_time::minutes(30)); //start at 6am
 		
-		posix_time::ptime end_time (gregorian::date(2011,gregorian::Mar,6), 
-			posix_time::hours(18)); //end at 6pm
+		posix_time::ptime end_time (gregorian::date(2010,gregorian::Sep,15), 
+			posix_time::hours(15)+posix_time::minutes(45)); //end at 6pm
 
 		//time step
 		posix_time::time_duration dt = posix_time::minutes(15);
@@ -261,17 +244,22 @@ int main()
 							if(j != k 
 								&& shadows(BBR->get_rect(i)->m_globalID[k]) == 0.0 
 								&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) || 
-									 rot_domain(zj(0)-1,2) >  rot_domain(zk(1)-1,2) ||
-									 rot_domain(zj(0)-1,2) >  rot_domain(zk(2)-1,2)))
+									 rot_domain(zj(1)-1,2) >  rot_domain(zk(1)-1,2) ||
+									 rot_domain(zj(2)-1,2) >  rot_domain(zk(2)-1,2)))
 							{
-								if(tk->intersects(tj))
-								{
-										shadows(BBR->get_rect(i)->m_globalID[k]) = 1.0;
-								}
-								else
-								{
-										shadows(BBR->get_rect(i)->m_globalID[k]) = 0.0;
-								}
+
+// 								if(tk->intersects(tj))
+// 								{
+// 									shadows(BBR->get_rect(i)->m_globalID[k]) = 1.0;
+// 								}
+// 								else
+// 								{
+// 									shadows(BBR->get_rect(i)->m_globalID[k]) = 0.0;
+// 								}
+
+								int lfactor=tk->intersects(tj);
+								shadows(BBR->get_rect(i)->m_globalID[k]) = (4-lfactor)/4.0;
+
 							}
 
 						}
@@ -320,6 +308,7 @@ int main()
 
 				}
 					
+				engine->evaluate("colormap(flipud(gray))");
 
 				//update time w/o UTC offset.
 				ss.str("");

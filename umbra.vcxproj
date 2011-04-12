@@ -34,6 +34,10 @@
     <ClInclude Include="src\triangle.h" />
     <ClInclude Include="src\triangulation.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="My Amplifier Results\r000hs\r000hs.ampl" />
+    <None Include="My Amplifier Results\r001hs\r001hs.ampl" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5035F651-E13F-481D-8B4F-55B53E39E95F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -91,9 +95,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.1.6\include;C:\Program Files\MATLAB\R2010b\extern\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2010b\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>C:\Program Files\MATLAB\R2010b\bin\win64;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.1.6\include;C:\Program Files\MATLAB\R2010a\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2010a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>C:\Program Files\MATLAB\R2010a\bin\win64;$(ExecutablePath)</ExecutablePath>
     <TargetName>$(ProjectName)_d</TargetName>
     <OutDir>$(SolutionDir)\bin\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(Platform)-$(Configuration)\</IntDir>

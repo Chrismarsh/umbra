@@ -47,31 +47,6 @@ triangle::triangle(size_t cur_rec_depth)
 }
 
 
-
-// bool triangle::contains( double x, double y )
-// {
-// 	double x1 = (m_vertex_list[0].x);
-// 	double y1 = (m_vertex_list[0].y);
-// 
-// 	double x2 = (m_vertex_list[1].y);
-// 	double y2 = (m_vertex_list[1].x);
-// 
-// 	double x3 = (m_vertex_list[2].x);
-// 	double y3 = (m_vertex_list[2].y);
-// 
-// 	double Area_PP1P2  = 0.5 *abs(x*y1-x*y2+x1*y2-x1*y+x2*y-x2*y1);
-// 	double Area_PP2P3  = 0.5 *abs(x*y2-x*y3+x2*y3-x2*y+x3*y-x3*y2);
-// 	double Area_PP3P1  = 0.5 *abs(x*y3-x*y1+x3*y1-x3*y+x1*y-x1*y3);
-// 	double Area_P1P2P3 = 0.5 *abs(x1*y2-x1*y3+x2*y3-x2*y1+x3*y1-x3*y2);
-// 
-// 	double areasum = Area_PP1P2 + Area_PP2P3 + Area_PP3P1;
-// 	if( abs(areasum - Area_P1P2P3) < 0.0001)
-// 		return true;
-// 	else
-// 		return false;
-// 
-// }
-
 bool triangle::contains(double x, double y)
 {
 	double x1=m_vertex_list[0].x;
@@ -101,12 +76,15 @@ void triangle::set_vertex_values( point vertex1, point vertex2, point vertex3)
 {
 	m_vertex_list[0].x = vertex1.x;
 	m_vertex_list[0].y = vertex1.y;
+	m_vertex_list[0].z = vertex1.z;
 
 	m_vertex_list[1].x = vertex2.x;
 	m_vertex_list[1].y = vertex2.y;
+	m_vertex_list[1].z = vertex2.z;
 
 	m_vertex_list[2].x = vertex3.x;
 	m_vertex_list[2].y = vertex3.y;
+	m_vertex_list[2].z = vertex3.z;
 
 	//center of the triangle
 	point pos = calc_center(this);		
@@ -497,3 +475,19 @@ point triangle::calc_center( triangle* t )
 	p.y = pos(1);
 	return p;
 }
+
+void triangle::set_facenormal( arma::vec& normal )
+{
+	m_surface_normal = normal;
+}
+
+arma::vec triangle::get_facenormal()
+{
+	return m_surface_normal;
+}
+
+point triangle::get_vertex_value( size_t vertex )
+{
+	return m_vertex_list[vertex];
+}
+

@@ -83,9 +83,10 @@ int main()
 		//perform the triangulation
 		std::cout << "Creating triangulation..." <<std::endl;
 		triangulation* tri = new triangulation(engine);
-		tri->create_delaunay(xyz->unsafe_col(0),xyz->unsafe_col(1));
-		std::cout <<"Finished!" <<std::endl;
+		tri->create_delaunay(xyz->unsafe_col(0),xyz->unsafe_col(1),xyz->unsafe_col(2));
 
+		std::cout << "Creating face normals..." <<std::endl;
+		tri->compute_face_normals();
 
 		//send 
 		std::cout << "Sending triangulation to matlab..." <<std::endl;
@@ -155,6 +156,10 @@ int main()
 			//convert to rads
 			double	A  = Az * M_PI/180;
 			double E  = El * M_PI/180;
+			arma::vec S;
+			S << cos(El) * sin(Az) << arma::endr
+			  << cos(El) * cos(Az) << arma::endr
+			  << sin(El) << arma::endr;
 
 			//check negative solar elevation 
 			if(E > 0)
@@ -193,6 +198,9 @@ int main()
 				//not a great way of doing this, but it's compatible with matlab's plotting
 				arma::vec shadows(tri->get_num_tri());
 				shadows.zeros();
+				arma::vec radiation(tri->get_num_tri());
+				radiation.zeros();
+
 
 				std::cout <<"Building BBR..." <<std::endl;
 				//for each triangle
@@ -209,9 +217,21 @@ int main()
 						{
 							BBR->get_rect(j)->triangles.push_back(&tri->operator()(i));
 							BBR->get_rect(j)->m_globalID.push_back(i);
-							//shadows(i)=j;
+							//shadows(i)=j; //uncommenting this will color the triangles based on BBR segment. good for debugging
+
+
 						}
 					}
+					arma::vec s_t;
+					s_t << sin(S(1))*cos(S(2)) << arma::endr
+						<< sin(S(1))*sin(S(2)) << arma::endr
+						<< cos (S(1)) << arma::endr;
+					arma::vec normal = tri->operator()(i).get_facenormal();
+					triangle lol = tri->operator()(i);
+					double angle = acos(arma::norm_dot(s_t,tri->operator()(i).get_facenormal()));
+					double rad = angle / pow(1.49598023,11.0) * 1370.0;
+					rad = rad <0 ? 0: rad;
+					radiation(i) = rad;
 				}
 
 				std::cout << "Generating shadows" << std::endl;
@@ -259,6 +279,8 @@ int main()
 
 								int lfactor=tk->intersects(tj);
 								shadows(BBR->get_rect(i)->m_globalID[k]) = (4-lfactor)/4.0;
+								radiation(BBR->get_rect(i)->m_globalID[k]) *=  1 - (4-lfactor)/4.0;
+								
 
 							}
 
@@ -270,6 +292,7 @@ int main()
 
 
 				engine->put_double_vector("shadows",&shadows);
+				engine->put_double_vector("radiation",&radiation);
 
 				//plot BBR
 // 				gfx->hold_on();
@@ -287,9 +310,9 @@ int main()
 				{
 					
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows(:)");
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","radiation(:)");
 					else
-						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","shadows(:)");
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","radiation(:)");
 				}
 				else
 				{
@@ -308,7 +331,7 @@ int main()
 
 				}
 					
-				engine->evaluate("colormap(flipud(gray))");
+//				engine->evaluate("colormap(flipud(gray))");
 
 				//update time w/o UTC offset.
 				ss.str("");
@@ -316,7 +339,7 @@ int main()
 		 			
 				ht = gfx->add_title(ss.str());
 			
-			
+/*			return 0;*/
 				std::cout << "paused" << std::endl;
 				_getch();
 				//Sleep(50);

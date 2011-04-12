@@ -29,7 +29,7 @@
 
 #include "triangulation.h"
 
-void triangulation::create_delaunay( arma::vec& x, arma::vec& y)
+void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 {
 	if(m_engine)
 	{
@@ -82,15 +82,15 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y)
 				point vertex1,vertex2,vertex3;
 				vertex1.x = x(v1-1);
 				vertex1.y = y(v1-1);
-			//	vertex1.z = &z(v1);
+				vertex1.z = z(v1-1);
 
 				vertex2.x = x(v2-1);
 				vertex2.y = y(v2-1);
-			//	vertex2.z = &z(v2);
+				vertex2.z = z(v2-1);
 
 				vertex3.x = x(v3-1);
 				vertex3.y = y(v3-1);
-			//	vertex3.z = &z(v3);
+				vertex3.z = z(v2-1);
 
 				m_triangles.push_back(new triangle(vertex1,vertex2,vertex3));
 		//std::cout << i << std::endl;
@@ -156,15 +156,20 @@ void triangulation::set_vertex_data( arma::mat& data )
 		point vertex1,vertex2,vertex3;
 		vertex1.x = data(v1-1,0);
 		vertex1.y = data(v1-1,1);
+		vertex1.z = data(v1-1,2);
 
 		vertex2.x = data(v2-1,0);
 		vertex2.y = data(v2-1,1);
+		vertex2.z = data(v2-1,2);
 
 		vertex3.x = data(v3-1,0);
 		vertex3.y = data(v3-1,1);
+		vertex3.z = data(v3-1,2);
 
 
 		m_triangles[i]->set_vertex_values(vertex1, vertex2, vertex3);
+
+
 	}
 }
 
@@ -172,3 +177,28 @@ arma::umat& triangulation::get_tri_index()
 {
 	return *m_tri;
 }
+
+void triangulation::compute_face_normals()
+{
+
+	for(auto it = m_triangles.begin(); it != m_triangles.end(); it++)
+	{
+		triangle* t = *it;
+		point vertex1 = t->get_vertex_value(0);
+		point vertex2 = t->get_vertex_value(1);
+		point vertex3 = t->get_vertex_value(2);
+		
+		arma::vec AB;
+		AB << vertex2.x - vertex1.x << vertex2.y - vertex1.y << vertex2.z - vertex1.z << arma::endr;
+		arma::vec AC;
+		AC << vertex3.x - vertex1.x << vertex3.y - vertex1.y << vertex3.z - vertex1.z << arma::endr;
+
+		arma::vec normal = cross(AB,AC);
+		t->set_facenormal(normal);
+
+	}
+
+
+
+}
+

@@ -44,13 +44,16 @@ class triangulation
 public:
 	triangulation(matlab* engine);
 	~triangulation();
-	void create_delaunay(arma::vec& x, arma::vec& y);
+	void create_delaunay(arma::vec& x, arma::vec& y, arma::vec& z);
 	size_t get_num_tri();
 	void set_vertex_data(arma::mat& data);
 	arma::uvec get_index(size_t t);
 	//returns the t-th triangle
 	triangle& operator()(size_t t);
+	
+	//get the matlab compliant triangulation index that contains indexes into the data array
 	arma::umat& get_tri_index();
+	void compute_face_normals();
 private:
 
 	

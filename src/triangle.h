@@ -50,10 +50,13 @@ public:
 	triangle& sub_tri(size_t t);
 
 	void set_vertex_values( point vertex1, point vertex2, point vertex3);
+	point get_vertex_value(size_t vertex);
 	bool contains(double x, double y);
 	bool contains(point xy);
 	int intersects(triangle* t);
 	point get_center();
+	void set_facenormal(arma::vec& normal);
+	arma::vec get_facenormal();
 private:
 	point m_vertex_list[3];
 	
@@ -64,6 +67,7 @@ private:
 	//set the number of sub triangles
 	size_t m_cur_rec_depth;
 
+	arma::vec m_surface_normal;
 
 	//get the mid point of a line segment
 	point* midpoint(point& p1, point& p2);

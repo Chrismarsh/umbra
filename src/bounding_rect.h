@@ -39,15 +39,17 @@ class bounding_rect
 {
 public:
 	bounding_rect(matlab* m_engine);
-	void make(const arma::vec* x, const arma::vec* y, int n_segments);
-	rect* bounding_rect::get_rect( int i );
-	int n_segments;
+	void make(const arma::vec* x, const arma::vec* y, int n_rows, int n_cols);
+	rect* bounding_rect::get_rect( int i, int j );
+	int n_rows;
+	int n_cols;
 	arma::vec *bbx;
 	arma::vec *bby;
 	bool pt_in_rect(double x, double y, rect* r);
 
 private:
-	std::vector<rect*> m_rectangles;
+	//std::vector<rect*> m_rectangles;
+	std::vector<std::vector<rect*> > m_grid;
 	matlab* m_engine;
 };
 

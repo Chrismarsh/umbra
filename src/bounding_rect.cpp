@@ -2,8 +2,11 @@
 
 
 
-void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_segments)
+void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_rows, int n_cols)
 {
+	int n_segments = n_cols;
+	int n_v_segments = n_rows;
+
 	arma::vec midpoint_bottom_x(n_segments);
 	arma::vec midpoint_top_x(n_segments);
 
@@ -16,12 +19,73 @@ void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_segments)
 	arma::vec& bby = *(m_engine->get_double_vector("bby"));
 	m_engine->evaluate("clear bbx bby");
 
-	this->n_segments = n_segments;
+	this->n_rows = n_rows;
+	this->n_cols = n_cols;
 
 	this->bbx = new arma::vec(bbx);
 	this->bby = new arma::vec(bby);
 
+	//need to construct new axis aligned BBR
+	arma::u32 index;
+	
+	//left most pt
+	double x_left = bbx.min(index);
+	double y_left = bby(index);
 
+	//right most pt
+	double x_right = bbx.max(index);
+	double y_right = bby(index);
+
+	//bottom most pt
+	double y_bottom = bby.min(index);
+	double x_bottom = bbx(index);
+
+	//top most pt
+	double y_top = bby.max(index);
+	double x_top = bbx(index);
+
+
+	//horizontal step size
+	double h_dx = (x_right - x_left) / n_segments;
+	double v_dy = (y_top - y_bottom) / n_v_segments;
+
+
+	//resize the row dimension
+	m_grid.resize(n_v_segments);
+
+	//start top left
+	//loop over rows
+	for(int i = 0; i < n_v_segments; i++)
+	{
+		//set the y coordinate to the current row top left coordinate
+		double h_y = y_top - v_dy*i;
+		double h_x = x_left;
+
+		//set number of cols
+		m_grid[i].resize(n_segments);
+
+
+		//loop over columns
+		for(int j = 0; j < n_segments; j++)
+		{
+			
+			arma::mat* t = new arma::mat(5,2);
+				
+
+			*t << h_x << h_y - v_dy << arma::endr // bottom left
+			   << h_x + h_dx << h_y - v_dy << arma::endr //bottom right
+			   << h_x + h_dx << h_y << arma::endr // top right
+			    << h_x << h_y << arma::endr //top left
+				<< h_x << h_y - v_dy << arma::endr; // bottom left
+
+
+			m_grid[i][j] = new rect(t);
+			h_x = h_x + h_dx;
+		}
+	}
+
+	
+/*
 	double m = (bby(1)-bby(0))/(bbx(1)-bbx(0));
 
 	double step=(bbx(2)-bbx(3))/n_segments;
@@ -85,11 +149,13 @@ void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_segments)
 		}
 	
 	}
+	}*/
 }
 
-rect* bounding_rect::get_rect( int i )
+rect* bounding_rect::get_rect( int i, int j )
 {
-	 return m_rectangles.at(i);
+		return m_grid[i][j];
+//	 return m_rectangles.at(i);
 }
 
 bounding_rect::bounding_rect( matlab* m_engine )

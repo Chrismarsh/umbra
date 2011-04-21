@@ -33,7 +33,7 @@
 #include <sstream>
 #include <cmath>
 #include <conio.h>
-
+//#include <omp.h>
 #include <armadillo>
 
 #include <windows.h>
@@ -59,7 +59,8 @@ int main()
 
 	try
 	{
-		
+
+		std::cout.precision(30);
 // 		std::cout << "Wait for debug attach" <<std::endl;
 // 		_getch();
 		matlab* engine = new matlab();
@@ -153,7 +154,7 @@ int main()
 			//euler rotation matrix K
 			arma::mat K; 
 
-			//convert to rads
+			//convert to radians
 			double	A  = Az * M_PI/180;
 			double E  = El * M_PI/180;
 			arma::vec S;
@@ -193,7 +194,7 @@ int main()
 
 				//build bounding rect
 				bounding_rect* BBR = new bounding_rect(engine);
-				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20);
+				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,50);
 			
 				//not a great way of doing this, but it's compatible with matlab's plotting
 				arma::vec shadows(tri->get_num_tri());
@@ -207,21 +208,27 @@ int main()
 				for(size_t i = 0; i< tri->get_num_tri();i++)
 				{
 					//for each bounding box segment
-					for(int j=0; j < BBR->n_segments;j++)
+					#pragma omp parallel for
+					for(int j=0; j < BBR->n_rows;j++)
 					{
-						triangle& t = tri->operator()(i);
-
-						if (  BBR->pt_in_rect(t(0).x, t(0).y, BBR->get_rect(j)) || //pt1
-							  BBR->pt_in_rect(t(1).x, t(1).y, BBR->get_rect(j)) || //pt2
-							  BBR->pt_in_rect(t(2).x, t(2).y, BBR->get_rect(j)) )  //pt3
+						for(int k = 0; k < BBR->n_cols; k++)
 						{
-							BBR->get_rect(j)->triangles.push_back(&tri->operator()(i));
-							BBR->get_rect(j)->m_globalID.push_back(i);
-							//shadows(i)=j; //uncommenting this will color the triangles based on BBR segment. good for debugging
+							triangle& t = tri->operator()(i);
+
+							if (  BBR->pt_in_rect(t(0).x, t(0).y, BBR->get_rect(j,k)) || //pt1
+								  BBR->pt_in_rect(t(1).x, t(1).y, BBR->get_rect(j,k)) || //pt2
+								  BBR->pt_in_rect(t(2).x, t(2).y, BBR->get_rect(j,k)) )  //pt3
+							{
+								BBR->get_rect(j,k)->triangles.push_back(&tri->operator()(i));
+								BBR->get_rect(j,k)->m_globalID.push_back(i);
+								//shadows(i)=j*k; //uncommenting this will color the triangles based on BBR segment. good for debugging
 
 
+							}
 						}
 					}
+
+					
 					arma::vec s_t;
 					s_t << sin(S(1))*cos(S(2)) << arma::endr
 						<< sin(S(1))*sin(S(2)) << arma::endr
@@ -234,85 +241,83 @@ int main()
 					radiation(i) = rad;
 				}
 
+				
 				std::cout << "Generating shadows" << std::endl;
 
 
 				//for each rect
-				for(int i = 0; i<BBR->n_segments; i++)
+				for(int i = 0; i<BBR->n_rows; i++)
 				{
-					std::cout << i <<std::endl;
-					int num_tri = BBR->get_rect(i)->triangles.size();
-
-					//for each triangle in each rect
-					for(int j=0; j<num_tri;j++)
+					for(int ii = 0; ii<BBR->n_cols;ii++)
 					{
-						//jth triangle
-						triangle* tj = (BBR->get_rect(i)->triangles.at(j));
+						int num_tri = BBR->get_rect(i,ii)->triangles.size();
 
-						//compare to other triangles
-						for(int k=0; k<num_tri;k++)
+						//for each triangle in each rect
+						for(int j=0; j<num_tri;j++)
 						{
-							//out current kth triangle
-							triangle* tk = (BBR->get_rect(i)->triangles.at(k));
-							arma::uvec zj = tri->get_index(BBR->get_rect(i)->m_globalID[j]);
-							double z1 = rot_domain(zj(0)-1,2);
+							//jth triangle
+							triangle* tj = (BBR->get_rect(i,ii)->triangles.at(j));
 
-							arma::uvec zk = tri->get_index(BBR->get_rect(i)->m_globalID[k]);
-							double z2 = rot_domain(zk(0)-1,2);
-
-
-							if(j != k 
-								&& shadows(BBR->get_rect(i)->m_globalID[k]) == 0.0 
-								&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) || 
-									 rot_domain(zj(1)-1,2) >  rot_domain(zk(1)-1,2) ||
-									 rot_domain(zj(2)-1,2) >  rot_domain(zk(2)-1,2)))
+							//compare to other triangles
+							for(int k=0; k<num_tri;k++)
 							{
+								//out current kth triangle
+								triangle* tk = (BBR->get_rect(i,ii)->triangles.at(k));
+								arma::uvec zj = tri->get_index(BBR->get_rect(i,ii)->m_globalID[j]);
+								double z1 = rot_domain(zj(0)-1,2);
 
-// 								if(tk->intersects(tj))
-// 								{
-// 									shadows(BBR->get_rect(i)->m_globalID[k]) = 1.0;
-// 								}
-// 								else
-// 								{
-// 									shadows(BBR->get_rect(i)->m_globalID[k]) = 0.0;
-// 								}
+								arma::uvec zk = tri->get_index(BBR->get_rect(i,ii)->m_globalID[k]);
+								double z2 = rot_domain(zk(0)-1,2);
 
-								int lfactor=tk->intersects(tj);
-								shadows(BBR->get_rect(i)->m_globalID[k]) = (4-lfactor)/4.0;
-								radiation(BBR->get_rect(i)->m_globalID[k]) *=  1 - (4-lfactor)/4.0;
+
+								if(j != k 
+									&& shadows(BBR->get_rect(i,ii)->m_globalID[k]) == 0.0 
+									&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) || 
+										 rot_domain(zj(1)-1,2) >  rot_domain(zk(1)-1,2) ||
+										 rot_domain(zj(2)-1,2) >  rot_domain(zk(2)-1,2)))
+								{
+
+									int lfactor=tk->intersects(tj);
+									shadows(BBR->get_rect(i,ii)->m_globalID[k]) = (4-lfactor)/4.0;
+									radiation(BBR->get_rect(i,ii)->m_globalID[k]) *=  1 - (4-lfactor)/4.0;
 								
+
+								}
 
 							}
 
-						}
-
 					}
-
+					}
 				}
 
-
+				
 				engine->put_double_vector("shadows",&shadows);
 				engine->put_double_vector("radiation",&radiation);
-
-				//plot BBR
+				
+// 				//plot BBR
 // 				gfx->hold_on();
 // 				gfx->plot_line(BBR->bbx,BBR->bby,"'color','red'");
-// 				for (int i = 0; i<BBR->n_segments;i++)
+// 				for (int i = 0; i<BBR->n_rows;i++)
 // 				{
-// 					gfx->plot_line(&(BBR->get_rect(i)->coord->unsafe_col(0)),&(BBR->get_rect(i)->coord->unsafe_col(1)));
+// 					for(int j = 0; j < BBR->n_cols; j++)
+// 					{
+// 						gfx->plot_line(&(BBR->get_rect(i,j)->coord->unsafe_col(0)),&(BBR->get_rect(i,j)->coord->unsafe_col(1)));
+// 					}
+// 					
 // 				}
 // 				gfx->hold_off();
 
 				//for basin view
+
 				engine->put_double_matrix("mxRot",&rot_domain);
 				//plot
 				if(viewpoint=="basin")
 				{
 					
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","radiation(:)");
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows(:)");
 					else
-						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","radiation(:)");
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","shadows(:)");
 				}
 				else
 				{
@@ -339,7 +344,6 @@ int main()
 		 			
 				ht = gfx->add_title(ss.str());
 			
-/*			return 0;*/
 				std::cout << "paused" << std::endl;
 				_getch();
 				//Sleep(50);

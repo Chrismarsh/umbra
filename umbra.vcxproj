@@ -35,8 +35,9 @@
     <ClInclude Include="src\triangulation.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="My Amplifier Results\r000hs\r000hs.ampl" />
-    <None Include="My Amplifier Results\r001hs\r001hs.ampl" />
+    <None Include="My Inspector Results\r003mi3\r003mi3.insp" />
+    <None Include="My Inspector Results\r004mi3\r004mi3.insp" />
+    <None Include="My Inspector Results\r005mi3\r005mi3.insp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5035F651-E13F-481D-8B4F-55B53E39E95F}</ProjectGuid>

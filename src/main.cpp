@@ -89,6 +89,7 @@ int main()
 		std::cout << "Creating face normals..." <<std::endl;
 		tri->compute_face_normals();
 
+
 		//send 
 		std::cout << "Sending triangulation to matlab..." <<std::endl;
 		engine->put_double_matrix("tri",&(arma::conv_to<arma::mat>::from(tri->get_tri_index())));
@@ -192,9 +193,8 @@ int main()
 				tri->set_vertex_data(rot_domain);
 				engine->put_double_matrix("mxRot",&rot_domain);
 
-				//build bounding rect
-				bounding_rect* BBR = new bounding_rect(engine);
-				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,50);
+
+		
 			
 				//not a great way of doing this, but it's compatible with matlab's plotting
 				arma::vec shadows(tri->get_num_tri());
@@ -204,6 +204,11 @@ int main()
 
 
 				std::cout <<"Building BBR..." <<std::endl;
+
+				//build bounding rect
+				bounding_rect* BBR = new bounding_rect(engine);
+				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,20);
+				
 				//for each triangle
 				for(size_t i = 0; i< tri->get_num_tri();i++)
 				{
@@ -228,22 +233,23 @@ int main()
 						}
 					}
 
-					
+					//radiation data
+					//solar vector
 					arma::vec s_t;
 					s_t << sin(S(1))*cos(S(2)) << arma::endr
 						<< sin(S(1))*sin(S(2)) << arma::endr
 						<< cos (S(1)) << arma::endr;
+					//face normal
 					arma::vec normal = tri->operator()(i).get_facenormal();
 					triangle lol = tri->operator()(i);
 					double angle = acos(arma::norm_dot(s_t,tri->operator()(i).get_facenormal()));
-					double rad = angle / pow(1.49598023,11.0) * 1370.0;
+					double rad =  1370.0/1.0344 *  cos(angle) *0.75; //use a "default" transmittance
 					rad = rad <0 ? 0: rad;
 					radiation(i) = rad;
 				}
 
 				
 				std::cout << "Generating shadows" << std::endl;
-
 
 				//for each rect
 				for(int i = 0; i<BBR->n_rows; i++)
@@ -259,6 +265,7 @@ int main()
 							triangle* tj = (BBR->get_rect(i,ii)->triangles.at(j));
 
 							//compare to other triangles
+							#pragma omp parallel for
 							for(int k=0; k<num_tri;k++)
 							{
 								//out current kth triangle
@@ -272,8 +279,13 @@ int main()
 
 								if(j != k 
 									&& shadows(BBR->get_rect(i,ii)->m_globalID[k]) == 0.0 
-									&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) || 
-										 rot_domain(zj(1)-1,2) >  rot_domain(zk(1)-1,2) ||
+
+									/*&& (rot_domain(zj(0)-1,2)+rot_domain(zj(1)-1,2)+rot_domain(zj(2)-1,2))/3 >
+										(rot_domain(zk(0)-1,2)+ rot_domain(zk(1)-1,2)+rot_domain(zk(2)-1,2))/3)*/
+
+
+									&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) &&
+										 rot_domain(zj(1)-1,2) >  rot_domain(zk(1)-1,2) &&
 										 rot_domain(zj(2)-1,2) >  rot_domain(zk(2)-1,2)))
 								{
 
@@ -290,9 +302,11 @@ int main()
 					}
 				}
 
-				
+				delete BBR;
+
 				engine->put_double_vector("shadows",&shadows);
 				engine->put_double_vector("radiation",&radiation);
+				engine->put_double_matrix("mxRot",&rot_domain);
 				
 // 				//plot BBR
 // 				gfx->hold_on();
@@ -309,15 +323,15 @@ int main()
 
 				//for basin view
 
-				engine->put_double_matrix("mxRot",&rot_domain);
+				
 				//plot
 				if(viewpoint=="basin")
 				{
 					
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows(:)");
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","radiation(:)");
 					else
-						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","shadows(:)");
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","radiation(:)");
 				}
 				else
 				{
@@ -329,9 +343,9 @@ int main()
 	// 				engine->evaluate("axis tight");
 
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","shadows(:)");
+						handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","radiation(:)");
 					else
-						handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","shadows(:)");
+						handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","radiation(:)");
 					engine->evaluate("axis tight");
 
 				}
@@ -344,17 +358,25 @@ int main()
 		 			
 				ht = gfx->add_title(ss.str());
 			
-				std::cout << "paused" << std::endl;
-				_getch();
-				//Sleep(50);
-
+// 				std::cout << "paused" << std::endl;
+// 				_getch();
 			}
 			time = time + dt;
 		}
 	
+		delete xyz;
 
-		_getch();
+		std::cout << "Finished" << std::endl;
+
+	//	_getch();
 		engine->stop();
+
+		delete engine;
+		delete gfx;
+		delete tri;
+
+		return 0;
+
 	}
 	catch(std::exception e)
 		{

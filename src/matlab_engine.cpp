@@ -43,6 +43,7 @@ void matlab::stop()
 		if (engEvalString(m_engine, "close") == 1)
 			throw std::exception(get_last_error().c_str());
 	}
+	m_engine = NULL;
 }
 
 void matlab::evaluate( std::string command )
@@ -95,7 +96,11 @@ mxArray* matlab::get( std::string name )
 
 matlab::~matlab()
 {
-
+	if(m_engine)
+	{
+		engEvalString(m_engine, "close");
+	}
+	m_engine = NULL;
 }
 
 matlab::matlab()
@@ -139,15 +144,12 @@ std::string matlab::get_last_error()
 			mxArray *errStr = mxGetField(err,0,"message");
 			if( (errStr != NULL) && mxIsChar(errStr) )
 			{
-				
 				// get the string
-				retval =
-					mxGetString(errStr,str,sizeof(str)/sizeof(str[0]));
-
+				retval = mxGetString(errStr,str,sizeof(str)/sizeof(str[0]));
 			}
 		}
 		mxDestroyArray(err);
-
+		err=NULL;
 		return std::string(str);
 	}
 	else

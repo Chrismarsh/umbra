@@ -48,6 +48,7 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 		}
 		m_engine->put("xy",xy);
 		m_engine->evaluate("tri=DelaunayTri(xy(:,1),xy(:,2))");
+
 		//clean up our temp array
 		mxDestroyArray(xy);
 		xy=NULL;
@@ -64,6 +65,8 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 		const mwSize* size = mxGetDimensions(tri);
  		m_size = size[0]; //first element is the # of rows
 		
+		m_triangles.resize(m_size);
+
 		double* t = mxGetPr(tri);
 		m_tri = new arma::umat(m_size,3);
 		for (size_t i = 0;i<m_size; i++)
@@ -92,7 +95,8 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 				vertex3.y = y(v3-1);
 				vertex3.z = z(v2-1);
 
-				m_triangles.push_back(new triangle(vertex1,vertex2,vertex3));
+				m_triangles[i] = new triangle(vertex1,vertex2,vertex3);
+				//m_triangles.push_back(new triangle(vertex1,vertex2,vertex3));
 		//std::cout << i << std::endl;
 		}
 	
@@ -122,6 +126,7 @@ triangulation::~triangulation()
 	}
 
 	delete m_tri;
+	m_engine = NULL;
 
 	
 }

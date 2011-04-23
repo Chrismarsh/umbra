@@ -110,7 +110,7 @@ void triangle::update_subtri()
 {
 	int longest;
  	if (m_sub_tri)
- 		delete m_sub_tri;	
+ 		delete[] m_sub_tri;	
 	
 
 	//only one level of recursion at the moment
@@ -147,6 +147,7 @@ void triangle::update_subtri()
 
 		//midpoint of the opposite edge2 (which is 1-2)
 		point* midpt_12 = midpoint(m_vertex_list[1],m_vertex_list[2]);
+	
 	
 		//have 4 sub triangles now:
 		//define CCW, left->right
@@ -203,7 +204,9 @@ void triangle::update_subtri()
 		v3.y = (midpt_12->y);
 		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
 
-		
+		delete midpt_01;
+		delete midpt_02;
+		delete midpt_12;
 
 	}
 	else if(l_sides[1] > l_sides[2] || l_sides[1] > l_sides[0])
@@ -220,6 +223,7 @@ void triangle::update_subtri()
 		//midpoint of the opposite edge2 (which is 0-2)
 		point* midpt_02 = midpoint(m_vertex_list[0],m_vertex_list[2]);
 
+	
 		//have 4 sub triangles now:
 		//define CCW, left->right
 		//t1 = 0-01-12-0
@@ -275,7 +279,9 @@ void triangle::update_subtri()
 		v3.y = (midpt_02->y);
 		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
 
-
+		delete midpt_12;
+		delete midpt_01;
+		delete midpt_02;
 	}
 	else 
 	{
@@ -343,7 +349,9 @@ void triangle::update_subtri()
 		v3.x = (midpt_02->x);
 		v3.y = (midpt_02->y);
 		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
-
+		delete midpt_02;
+		delete midpt_01;
+		delete midpt_12;
 	}	
 }
 triangle& triangle::sub_tri(size_t t)
@@ -380,14 +388,6 @@ int triangle::intersects( triangle* t )
 		if(t->contains(this->m_sub_tri[i]->get_center()))
 			lfactor--;
 	}
-
-
-// 	if( t->contains(m_vertex_list[0]) ||
-// 		t->contains(m_vertex_list[1]) ||
-// 		t->contains(m_vertex_list[2]))
-// 	{
-// 		crossing = true;
-// 	}
 
 	return lfactor;
 }

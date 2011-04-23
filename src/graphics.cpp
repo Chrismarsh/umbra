@@ -124,3 +124,7 @@ double graphics::plot_line(const arma::vec* x, const arma::vec* y,std::string op
 
 }
 
+graphics::~graphics()
+{
+
+}

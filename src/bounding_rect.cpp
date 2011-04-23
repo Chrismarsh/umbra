@@ -15,34 +15,39 @@ void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_rows, int
 
 	
 	m_engine->evaluate("[bbx,bby,~,~]=minboundrect(mxRot(:,1),mxRot(:,2));");
-	arma::vec& bbx = *(m_engine->get_double_vector("bbx"));
-	arma::vec& bby = *(m_engine->get_double_vector("bby"));
+
+
+	arma::vec* bbx = (m_engine->get_double_vector("bbx"));
+	arma::vec* bby = (m_engine->get_double_vector("bby"));
+
 	m_engine->evaluate("clear bbx bby");
+
+	
 
 	this->n_rows = n_rows;
 	this->n_cols = n_cols;
 
-	this->bbx = new arma::vec(bbx);
-	this->bby = new arma::vec(bby);
+// 	bbx = new arma::vec(bbx);
+// 	bby = new arma::vec(bby);
 
 	//need to construct new axis aligned BBR
 	arma::u32 index;
 	
 	//left most pt
-	double x_left = bbx.min(index);
-	double y_left = bby(index);
+	double x_left = bbx->min(index);
+	double y_left = bby->operator()(index);
 
 	//right most pt
-	double x_right = bbx.max(index);
-	double y_right = bby(index);
+	double x_right = bbx->max(index);
+	double y_right = bby->operator()(index);
 
 	//bottom most pt
-	double y_bottom = bby.min(index);
-	double x_bottom = bbx(index);
+	double y_bottom = bby->min(index);
+	double x_bottom = bbx->operator()(index);
 
 	//top most pt
-	double y_top = bby.max(index);
-	double x_top = bbx(index);
+	double y_top = bby->max(index);
+	double x_top = bbx->operator()(index);
 
 
 	//horizontal step size
@@ -84,6 +89,9 @@ void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_rows, int
 		}
 	}
 
+	delete bbx;
+	delete bby;
+	
 	
 /*
 	double m = (bby(1)-bby(0))/(bbx(1)-bbx(0));
@@ -161,6 +169,7 @@ rect* bounding_rect::get_rect( int i, int j )
 bounding_rect::bounding_rect( matlab* m_engine )
 {
 	this->m_engine = m_engine;
+
 }
 
 bool bounding_rect::pt_in_rect( double x, double y, rect* r )
@@ -179,4 +188,17 @@ bool bounding_rect::pt_in_rect( double x, double y, rect* r )
 			return false;
 	}
 	return true;
+}
+
+bounding_rect::~bounding_rect()
+{
+	for(auto it=m_grid.begin();it!=m_grid.end();it++)
+	{
+		for(auto jt=it->begin(); jt!= it->end(); jt++)
+		{
+			delete *jt;
+		}
+	}
+
+	m_engine = NULL;
 }

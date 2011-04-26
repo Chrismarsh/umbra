@@ -39,7 +39,7 @@ class triangle
 public:
 	//use xyz triples in the vector
 	//store the index like matlab
-	triangle( point vertex1, point vertex2, point vertex3, size_t cur_rec_depth=0);
+	triangle( point vertex1, point vertex2, point vertex3, size_t cur_rec_depth=1);
 	triangle(size_t cur_rec_depth);
 
 

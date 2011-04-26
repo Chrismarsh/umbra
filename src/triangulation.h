@@ -56,7 +56,7 @@ public:
 	void compute_face_normals();
 private:
 
-	
+
 
 	//these two structures need to stay in sync so that matlab can plot them
 	//the triangles

@@ -29,7 +29,7 @@
 
 #include "triangle.h"
 
-triangle::triangle( point vertex1, point vertex2, point vertex3, size_t cur_rec_depth/*=0*/)
+triangle::triangle( point vertex1, point vertex2, point vertex3, size_t cur_rec_depth/*=1*/)
 {
 	m_cur_rec_depth = cur_rec_depth;
  	m_sub_tri = NULL;
@@ -42,28 +42,6 @@ triangle::triangle(size_t cur_rec_depth)
 	m_sub_tri = NULL;
 
 	m_cur_rec_depth = cur_rec_depth;
-
-
-}
-
-
-bool triangle::contains(double x, double y)
-{
-	double x1=m_vertex_list[0].x;
-	double y1=m_vertex_list[1].y;
-
-	double x2=m_vertex_list[1].x;
-	double y2=m_vertex_list[1].y;
-
-	double x3=m_vertex_list[2].x;
-	double y3=m_vertex_list[2].y;
-	double lambda1= ((y2-y3)*(x-x3)+(x3-x2)*(y-y3))/((y2-y3)*(x1-x3)+(x3-x2)*(y1-y3));
-	double lambda2= ((y3-y1)*(x-x3)+(x1-x3)*(y-y3))/((y3-y1)*(x2-x3)+(x1-x3)*(y2-y3));
-	double lambda3=1-lambda1-lambda2;
-
-	return lambda1 > 0 && lambda1 <1 
-		&& lambda2 > 0 && lambda2 < 1 
-		&& lambda3 > 0 && lambda3 <1;
 }
 
 
@@ -99,7 +77,7 @@ void triangle::set_vertex_values( point vertex1, point vertex2, point vertex3)
 // 	std::cout << "center" <<std::endl;
 // 	std::cout << pos.x << " " << pos.y << std::endl;
 
-	if (m_cur_rec_depth == 0)
+	if (m_cur_rec_depth != 0)
 	{
 		update_subtri();
 	}
@@ -110,15 +88,19 @@ void triangle::update_subtri()
 {
 	int longest;
  	if (m_sub_tri)
+	{
+		for(int i = 0;i<4;i++)
+		{
+			delete m_sub_tri[i];
+		}
  		delete[] m_sub_tri;	
-	
+	}
 
-	//only one level of recursion at the moment
 	// set each sub
 	m_sub_tri = new triangle*[4];
 	for(int i = 0; i<4;i++)
 	{
-		m_sub_tri[i] = new triangle(m_cur_rec_depth+1);
+		m_sub_tri[i] = new triangle(m_cur_rec_depth-1);
 	}
 
 // 	std::cout.precision(16);
@@ -147,7 +129,6 @@ void triangle::update_subtri()
 
 		//midpoint of the opposite edge2 (which is 1-2)
 		point* midpt_12 = midpoint(m_vertex_list[1],m_vertex_list[2]);
-	
 	
 		//have 4 sub triangles now:
 		//define CCW, left->right
@@ -204,9 +185,7 @@ void triangle::update_subtri()
 		v3.y = (midpt_12->y);
 		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
 
-		delete midpt_01;
-		delete midpt_02;
-		delete midpt_12;
+		
 
 	}
 	else if(l_sides[1] > l_sides[2] || l_sides[1] > l_sides[0])
@@ -223,7 +202,6 @@ void triangle::update_subtri()
 		//midpoint of the opposite edge2 (which is 0-2)
 		point* midpt_02 = midpoint(m_vertex_list[0],m_vertex_list[2]);
 
-	
 		//have 4 sub triangles now:
 		//define CCW, left->right
 		//t1 = 0-01-12-0
@@ -279,9 +257,7 @@ void triangle::update_subtri()
 		v3.y = (midpt_02->y);
 		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
 
-		delete midpt_12;
-		delete midpt_01;
-		delete midpt_02;
+
 	}
 	else 
 	{
@@ -349,9 +325,7 @@ void triangle::update_subtri()
 		v3.x = (midpt_02->x);
 		v3.y = (midpt_02->y);
 		m_sub_tri[3]->set_vertex_values(v1,v2,v3);
-		delete midpt_02;
-		delete midpt_01;
-		delete midpt_12;
+
 	}	
 }
 triangle& triangle::sub_tri(size_t t)
@@ -359,37 +333,58 @@ triangle& triangle::sub_tri(size_t t)
 	return *(m_sub_tri[t]);
 }
 
-/*does triangle t contain any of our sub points?*/
-// bool triangle::intersects( triangle* t )
-// {
-// 		bool crossing = false;
-// 		for(int i =0;i<4;i++)
-// 		{
-// 			if(t->contains(this->m_sub_tri[i]->get_center()))
-// 			 crossing = true;
-// 		}
-// 
-// 
-// 	if( t->contains(m_vertex_list[0]) ||
-// 		t->contains(m_vertex_list[1]) ||
-// 		t->contains(m_vertex_list[2]))
-// 	{
-// 		crossing = true;
-// 	}
-// 
-// 	return crossing;
-// }
 
 int triangle::intersects( triangle* t )
 {
-	int lfactor = 4;
-	for(int i =0;i<4;i++)
+	//I have no children
+	if(m_sub_tri == NULL)
 	{
-		if(t->contains(this->m_sub_tri[i]->get_center()))
-			lfactor--;
-	}
+		//does t contain my points?
+		bool intersect = t->contains(this->get_center());
 
-	return lfactor;
+		if(!intersect)
+		{
+			if( t->contains(this->get_vertex_value(0)) ||
+				t->contains(this->get_vertex_value(1)) ||
+				t->contains(this->get_vertex_value(2)))
+			{
+				intersect = true;
+			}
+		}
+
+		return intersect == true ? 1:0;
+	}
+	else
+		//i have children
+	{
+		int sum=0;
+		for(size_t i = 0; i<4; i++)
+		{
+			sum += m_sub_tri[i]->intersects(t);
+		}
+		return sum;
+	}
+}
+
+bool triangle::contains(double x, double y)
+{
+	double x1=m_vertex_list[0].x;
+	double y1=m_vertex_list[1].y;
+
+	double x2=m_vertex_list[1].x;
+	double y2=m_vertex_list[1].y;
+
+	double x3=m_vertex_list[2].x;
+	double y3=m_vertex_list[2].y;
+	double lambda1= ((y2-y3)*(x-x3)+(x3-x2)*(y-y3))/((y2-y3)*(x1-x3)+(x3-x2)*(y1-y3));
+	double lambda2= ((y3-y1)*(x-x3)+(x1-x3)*(y-y3))/((y3-y1)*(x2-x3)+(x1-x3)*(y2-y3));
+	double lambda3=1-lambda1-lambda2;
+
+	return lambda1 > 0 && lambda1 <1 
+		&& lambda2 > 0 && lambda2 < 1 
+		&& lambda3 > 0 && lambda3 <1;
+
+
 }
 
 point triangle::operator()(size_t v )

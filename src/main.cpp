@@ -52,11 +52,10 @@
 #include "bounding_rect.h"
 
 using namespace boost;
+
 int main()
 
 {
-
-
 	try
 	{
 
@@ -72,14 +71,14 @@ int main()
 
 		//loads the data via matlab
 		std::cout << "Loading data" << std::endl;
-		engine->evaluate("load square_nodes_5m.csv");
+		engine->evaluate("load square_nodes_2m.csv");
 
-		arma::mat* xyz = engine->get_double_matrix("square_nodes_5m");
+		arma::mat* xyz = engine->get_double_matrix("square_nodes_2m");
 
 		if(!xyz)
 			throw std::exception(engine->get_last_error().c_str());
 
-		engine->evaluate("clear square_nodes_5m");
+		engine->evaluate("clear square_nodes_2m");
 
 		//perform the triangulation
 		std::cout << "Creating triangulation..." <<std::endl;
@@ -89,6 +88,8 @@ int main()
 		std::cout << "Creating face normals..." <<std::endl;
 		tri->compute_face_normals();
 
+		//build bounding rect
+		bounding_rect* BBR = new bounding_rect(engine);
 
 		//send 
 		std::cout << "Sending triangulation to matlab..." <<std::endl;
@@ -194,7 +195,7 @@ int main()
 				engine->put_double_matrix("mxRot",&rot_domain);
 
 
-		
+				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,50);
 			
 				//not a great way of doing this, but it's compatible with matlab's plotting
 				arma::vec shadows(tri->get_num_tri());
@@ -204,11 +205,6 @@ int main()
 
 
 				std::cout <<"Building BBR..." <<std::endl;
-
-				//build bounding rect
-				bounding_rect* BBR = new bounding_rect(engine);
-				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,20);
-				
 				//for each triangle
 				for(size_t i = 0; i< tri->get_num_tri();i++)
 				{
@@ -265,36 +261,33 @@ int main()
 							triangle* tj = (BBR->get_rect(i,ii)->triangles.at(j));
 
 							//compare to other triangles
-							#pragma omp parallel for
 							for(int k=0; k<num_tri;k++)
 							{
-								//out current kth triangle
-								triangle* tk = (BBR->get_rect(i,ii)->triangles.at(k));
-								arma::uvec zj = tri->get_index(BBR->get_rect(i,ii)->m_globalID[j]);
-								double z1 = rot_domain(zj(0)-1,2);
-
-								arma::uvec zk = tri->get_index(BBR->get_rect(i,ii)->m_globalID[k]);
-								double z2 = rot_domain(zk(0)-1,2);
-
-
-								if(j != k 
-									&& shadows(BBR->get_rect(i,ii)->m_globalID[k]) == 0.0 
-
-									/*&& (rot_domain(zj(0)-1,2)+rot_domain(zj(1)-1,2)+rot_domain(zj(2)-1,2))/3 >
-										(rot_domain(zk(0)-1,2)+ rot_domain(zk(1)-1,2)+rot_domain(zk(2)-1,2))/3)*/
-
-
-									&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) &&
-										 rot_domain(zj(1)-1,2) >  rot_domain(zk(1)-1,2) &&
-										 rot_domain(zj(2)-1,2) >  rot_domain(zk(2)-1,2)))
+								if(j != k)
 								{
+									//out current kth triangle
+									triangle* tk = (BBR->get_rect(i,ii)->triangles.at(k));
+									arma::uvec zj = tri->get_index(BBR->get_rect(i,ii)->m_globalID[j]);
+									arma::uvec zk = tri->get_index(BBR->get_rect(i,ii)->m_globalID[k]);
+									
+									double zj_avg =  (rot_domain(zj(0)-1,2) + rot_domain(zj(1)-1,2) + rot_domain(zj(2)-1,2))/3.0;
+									double zk_avg = (rot_domain(zk(0)-1,2) + rot_domain(zk(1)-1,2) + rot_domain(zk(2)-1,2))/3.0;
 
-									int lfactor=tk->intersects(tj);
-									shadows(BBR->get_rect(i,ii)->m_globalID[k]) = (4-lfactor)/4.0;
-									radiation(BBR->get_rect(i,ii)->m_globalID[k]) *=  1 - (4-lfactor)/4.0;
-								
 
+// 									if(shadows(BBR->get_rect(i,ii)->m_globalID[k]) == 0.0 
+// 										&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) &&
+// 											 rot_domain(zj(1)-1,2) >  rot_domain(zk(1)-1,2) &&
+// 											 rot_domain(zj(2)-1,2) >  rot_domain(zk(2)-1,2)))
+								    if(shadows(BBR->get_rect(i,ii)->m_globalID[k]) == 0.0 &&
+									 zj_avg > zk_avg)
+									{
+										//does tj contain any of tk's pts?
+										int lfactor=tj->intersects(tk);
+										shadows(BBR->get_rect(i,ii)->m_globalID[k]) = lfactor;
+										radiation(BBR->get_rect(i,ii)->m_globalID[k]) *= ((4.0-lfactor)/4.0);
+									}
 								}
+
 
 							}
 
@@ -302,8 +295,7 @@ int main()
 					}
 				}
 
-				delete BBR;
-
+				
 				engine->put_double_vector("shadows",&shadows);
 				engine->put_double_vector("radiation",&radiation);
 				engine->put_double_matrix("mxRot",&rot_domain);
@@ -351,6 +343,8 @@ int main()
 				}
 					
 //				engine->evaluate("colormap(flipud(gray))");
+				engine->evaluate("sum_rad=sum(radiation);");
+				double sumrad = engine->get_scaler("sum_rad");
 
 				//update time w/o UTC offset.
 				ss.str("");
@@ -358,29 +352,20 @@ int main()
 		 			
 				ht = gfx->add_title(ss.str());
 			
-// 				std::cout << "paused" << std::endl;
-// 				_getch();
+				std::cout << "paused" << std::endl;
+				_getch();
 			}
 			time = time + dt;
 		}
 	
-		delete xyz;
-
 		std::cout << "Finished" << std::endl;
-
-	//	_getch();
+		_getch();
 		engine->stop();
-
-		delete engine;
-		delete gfx;
-		delete tri;
-
-		return 0;
-
 	}
 	catch(std::exception e)
 		{
 			std::cout << e.what() << std::endl;
+																												
 			_getch();
 		}
 		

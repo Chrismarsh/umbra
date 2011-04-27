@@ -57,6 +57,7 @@ public:
 	point get_center();
 	void set_facenormal(arma::vec& normal);
 	arma::vec get_facenormal();
+
 private:
 	point m_vertex_list[3];
 	

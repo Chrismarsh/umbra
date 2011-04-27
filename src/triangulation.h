@@ -54,6 +54,13 @@ public:
 	//get the matlab compliant triangulation index that contains indexes into the data array
 	arma::umat& get_tri_index();
 	void compute_face_normals();
+
+	triangle* find_containing_triangle(double x, double y);
+
+	
+
+
+
 private:
 
 

@@ -202,3 +202,19 @@ void triangulation::compute_face_normals()
 
 }
 
+triangle* triangulation::find_containing_triangle( double x,double y )
+{
+	for(std::vector<triangle*>::iterator it=m_triangles.begin(); it != m_triangles.end(); it++)
+	{
+		if( (*it)->contains(x,y) )
+		{
+			return *it;
+		}
+
+	}
+
+	return NULL;
+
+
+}
+

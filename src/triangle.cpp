@@ -396,6 +396,7 @@ point triangle::operator()(size_t v )
 	return p;
 }
 
+
 point triangle::get_center()
 {
 	return m_center;

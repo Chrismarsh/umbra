@@ -85,6 +85,12 @@ int main()
 		triangulation* tri = new triangulation(engine);
 		tri->create_delaunay(xyz->unsafe_col(0),xyz->unsafe_col(1),xyz->unsafe_col(2));
 
+		std::cout << "Finding obs triangle..." << std::endl;
+		triangle* obs_tri = tri->find_containing_triangle(626345.8844,5646903.1124);
+
+		if(!obs_tri)
+			throw std::exception("Can't find containing triangle");
+
 		std::cout << "Creating face normals..." <<std::endl;
 		tri->compute_face_normals();
 
@@ -102,10 +108,10 @@ int main()
  
 		//start up time
 		posix_time::ptime time (gregorian::date(2010,gregorian::Sep,15), 
-							posix_time::hours(15)+posix_time::minutes(30)); //start at 6am
+							posix_time::hours(16)+posix_time::minutes(30)); //start at 6am
 		
 		posix_time::ptime end_time (gregorian::date(2010,gregorian::Sep,15), 
-			posix_time::hours(15)+posix_time::minutes(45)); //end at 6pm
+			posix_time::hours(16)+posix_time::minutes(45)); //end at 6pm
 
 		//time step
 		posix_time::time_duration dt = posix_time::minutes(15);
@@ -164,6 +170,9 @@ int main()
 			  << cos(El) * cos(Az) << arma::endr
 			  << sin(El) << arma::endr;
 
+
+			arma::vec obs_pt;
+
 			//check negative solar elevation 
 			if(E > 0)
 			{	
@@ -188,12 +197,11 @@ int main()
 					rot_domain(i,0)=coord(0);
 					rot_domain(i,1)=coord(1);
 					rot_domain(i,2)=coord(2);
-
 				}
+
 				//need to update what the triangle data points to, as it will be by default initialized to that of the triangulation data
 				tri->set_vertex_data(rot_domain);
 				engine->put_double_matrix("mxRot",&rot_domain);
-
 
 				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,50);
 			
@@ -206,10 +214,10 @@ int main()
 
 				std::cout <<"Building BBR..." <<std::endl;
 				//for each triangle
-				for(size_t i = 0; i< tri->get_num_tri();i++)
+				for(int i = 0; i< tri->get_num_tri();i++)
 				{
 					//for each bounding box segment
-					#pragma omp parallel for
+					//#pragma omp parallel for
 					for(int j=0; j < BBR->n_rows;j++)
 					{
 						for(int k = 0; k < BBR->n_cols; k++)
@@ -223,10 +231,9 @@ int main()
 								BBR->get_rect(j,k)->triangles.push_back(&tri->operator()(i));
 								BBR->get_rect(j,k)->m_globalID.push_back(i);
 								//shadows(i)=j*k; //uncommenting this will color the triangles based on BBR segment. good for debugging
-
-
 							}
 						}
+
 					}
 
 					//radiation data
@@ -237,7 +244,6 @@ int main()
 						<< cos (S(1)) << arma::endr;
 					//face normal
 					arma::vec normal = tri->operator()(i).get_facenormal();
-					triangle lol = tri->operator()(i);
 					double angle = acos(arma::norm_dot(s_t,tri->operator()(i).get_facenormal()));
 					double rad =  1370.0/1.0344 *  cos(angle) *0.75; //use a "default" transmittance
 					rad = rad <0 ? 0: rad;
@@ -252,8 +258,18 @@ int main()
 				{
 					for(int ii = 0; ii<BBR->n_cols;ii++)
 					{
-						int num_tri = BBR->get_rect(i,ii)->triangles.size();
+						//sort descending
+						std::sort(BBR->get_rect(i,ii)->triangles.begin(),BBR->get_rect(i,ii)->triangles.end(),
+							[](triangle* a, triangle* b)->bool
+						{
+							double a_avg = (a->get_vertex_value(0).z + a->get_vertex_value(1).z + a->get_vertex_value(2).z)/3.0;
+							double b_avg = (b->get_vertex_value(0).z + b->get_vertex_value(1).z + b->get_vertex_value(2).z)/3.0;
 
+							return a_avg > b_avg;
+						});
+
+
+						int num_tri = BBR->get_rect(i,ii)->triangles.size();
 						//for each triangle in each rect
 						for(int j=0; j<num_tri;j++)
 						{
@@ -261,11 +277,8 @@ int main()
 							triangle* tj = (BBR->get_rect(i,ii)->triangles.at(j));
 
 							//compare to other triangles
-							for(int k=0; k<num_tri;k++)
+							for(int k=j; k<num_tri;k++)
 							{
-								if(j != k)
-								{
-									//out current kth triangle
 									triangle* tk = (BBR->get_rect(i,ii)->triangles.at(k));
 									arma::uvec zj = tri->get_index(BBR->get_rect(i,ii)->m_globalID[j]);
 									arma::uvec zk = tri->get_index(BBR->get_rect(i,ii)->m_globalID[k]);
@@ -278,6 +291,7 @@ int main()
 // 										&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) &&
 // 											 rot_domain(zj(1)-1,2) >  rot_domain(zk(1)-1,2) &&
 // 											 rot_domain(zj(2)-1,2) >  rot_domain(zk(2)-1,2)))
+// 									
 								    if(shadows(BBR->get_rect(i,ii)->m_globalID[k]) == 0.0 &&
 									 zj_avg > zk_avg)
 									{
@@ -286,12 +300,8 @@ int main()
 										shadows(BBR->get_rect(i,ii)->m_globalID[k]) = lfactor;
 										radiation(BBR->get_rect(i,ii)->m_globalID[k]) *= ((4.0-lfactor)/4.0);
 									}
-								}
-
-
 							}
-
-					}
+						}
 					}
 				}
 
@@ -299,7 +309,9 @@ int main()
 				engine->put_double_vector("shadows",&shadows);
 				engine->put_double_vector("radiation",&radiation);
 				engine->put_double_matrix("mxRot",&rot_domain);
-				
+			
+
+
 // 				//plot BBR
 // 				gfx->hold_on();
 // 				gfx->plot_line(BBR->bbx,BBR->bby,"'color','red'");
@@ -313,10 +325,8 @@ int main()
 // 				}
 // 				gfx->hold_off();
 
-				//for basin view
 
-				
-				//plot
+				//for basin view
 				if(viewpoint=="basin")
 				{
 					
@@ -343,8 +353,6 @@ int main()
 				}
 					
 //				engine->evaluate("colormap(flipud(gray))");
-				engine->evaluate("sum_rad=sum(radiation);");
-				double sumrad = engine->get_scaler("sum_rad");
 
 				//update time w/o UTC offset.
 				ss.str("");
@@ -358,17 +366,15 @@ int main()
 			time = time + dt;
 		}
 	
-		std::cout << "Finished" << std::endl;
-		_getch();
 		engine->stop();
 	}
 	catch(std::exception e)
-		{
-			std::cout << e.what() << std::endl;
-																												
-			_getch();
-		}
-		
+	{
+		std::cout << e.what() << std::endl;																						
+
+	}
+	std::cout << "Finished" << std::endl;
+	_getch();
 	
 	return 0;
 }

@@ -92,9 +92,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2010a\extern\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2010a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>C:\Program Files\MATLAB\R2010a\bin\win64;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>C:\Program Files\MATLAB\R2011a\bin\win64;$(ExecutablePath)</ExecutablePath>
     <TargetName>$(ProjectName)_d</TargetName>
     <OutDir>$(SolutionDir)\bin\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(Platform)-$(Configuration)\</IntDir>
@@ -108,8 +108,8 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)\bin\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(Platform)-$(Configuration)\</IntDir>
-    <IncludePath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2010b\extern\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2010b\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

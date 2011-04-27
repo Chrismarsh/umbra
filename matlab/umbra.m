@@ -29,7 +29,7 @@
 function umbra()
 
 %basin or sun
-viewpoint='basin';
+viewpoint='sun';
 
 load square_nodes_5m.csv
 
@@ -57,8 +57,8 @@ alt = 0.0;
 % datestr(time,'yyyy/mm/dd HH:MM:SS')
 %utc offset
 UTC_offset = 7;
-tstart = datenum('2011/3/6 7:30:00');
-tend = datenum('2011/3/6 18:00:00');
+tstart = datenum('2010/9/15 16:30:00');
+tend = datenum('2010/9/15 16:45:00');
 tstart=datestr(addtodate(tstart,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 tend=datestr(addtodate(tend,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 
@@ -190,77 +190,77 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
 % +-> +x
 
     %only need 1:4 of these 5x1 vectors bbx, bby
-    [bbx,bby,~,~]=minboundrect(proj_x,proj_y);
-
-    m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
-    step=(bbx(3)-bbx(4))/sg_nx;
-    for i=1:sg_nx
-        xpos.bottom=bbx(1)+step*i;
-        xpos.top=bbx(4)+step*i;
-        
-        x_mp.bottom(i).x=xpos.bottom;
-        x_mp.bottom(i).y=m*(xpos.bottom-bbx(1))+bby(1); %2pt line eqn
-      
-        x_mp.top(i).x=xpos.top;
-        x_mp.top(i).y=m*(xpos.top-bbx(4))+bby(4); %2pt line eqn
-        
-    end
+%     [bbx,bby,~,~]=minboundrect(proj_x,proj_y);
+% 
+%     m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
+%     step=(bbx(3)-bbx(4))/sg_nx;
+%     for i=1:sg_nx
+%         xpos.bottom=bbx(1)+step*i;
+%         xpos.top=bbx(4)+step*i;
+%         
+%         x_mp.bottom(i).x=xpos.bottom;
+%         x_mp.bottom(i).y=m*(xpos.bottom-bbx(1))+bby(1); %2pt line eqn
+%       
+%         x_mp.top(i).x=xpos.top;
+%         x_mp.top(i).y=m*(xpos.top-bbx(4))+bby(4); %2pt line eqn
+%         
+%     end
         
 
     
     %build sub rectangles
-    for i=1:sg_nx
-        %first rect
-       if i ==1
-           rectangles{1}.vertex=[[bbx(1),bby(1)];...%bottom left
-                         [x_mp.bottom(1).x,x_mp.bottom(1).y];...%bottom right mid point
-                         [x_mp.top(1).x,x_mp.top(1).y];... %top right mid point
-                         [bbx(4),bby(4)];...%top right
-                         [bbx(1),bby(1)]]; 
-
-    
-%        last rect
-       else if i==sg_nx
-           rectangles{i}.vertex= [[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
-                           [bbx(2),bby(2)];...
-                           [bbx(3),bby(3)];...
-                           [x_mp.top(i-1).x,x_mp.top(i-1).y];...
-                           [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
-           else
-             rectangles{i}.vertex=[[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
-                           [x_mp.bottom(i).x,x_mp.bottom(i).y];...
-                           [x_mp.top(i).x,x_mp.top(i).y];...
-                           [x_mp.top(i-1).x,x_mp.top(i-1).y];...
-                           [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
-           end
-       end
-        %initialize memory for triangle-rect association. Each index is an
-        %index into the triangulation
-        rectangles{i}.triangle_set=zeros(length(tri.Triangulation),1); %worst case....
-        %number of triangles in this rectangle
-        rectangles{i}.num_triangles=0;
-          
-    end
+%     for i=1:sg_nx
+%         %first rect
+%        if i ==1
+%            rectangles{1}.vertex=[[bbx(1),bby(1)];...%bottom left
+%                          [x_mp.bottom(1).x,x_mp.bottom(1).y];...%bottom right mid point
+%                          [x_mp.top(1).x,x_mp.top(1).y];... %top right mid point
+%                          [bbx(4),bby(4)];...%top right
+%                          [bbx(1),bby(1)]]; 
+% 
+%     
+% %        last rect
+%        else if i==sg_nx
+%            rectangles{i}.vertex= [[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
+%                            [bbx(2),bby(2)];...
+%                            [bbx(3),bby(3)];...
+%                            [x_mp.top(i-1).x,x_mp.top(i-1).y];...
+%                            [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
+%            else
+%              rectangles{i}.vertex=[[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
+%                            [x_mp.bottom(i).x,x_mp.bottom(i).y];...
+%                            [x_mp.top(i).x,x_mp.top(i).y];...
+%                            [x_mp.top(i-1).x,x_mp.top(i-1).y];...
+%                            [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
+%            end
+%        end
+%         %initialize memory for triangle-rect association. Each index is an
+%         %index into the triangulation
+%         rectangles{i}.triangle_set=zeros(length(tri.Triangulation),1); %worst case....
+%         %number of triangles in this rectangle
+%         rectangles{i}.num_triangles=0;
+%           
+%     end
 %      
 %   
 %    %loop over all the nodes to find which rectrangle(s) a triangle
 %    %lies within
 %    fprint('Calculating spatial segmentation\n')
-    for j=1:tri.size
-       for i=1:sg_nx
-           %eww.....but checks if any of the 3 vertices are in a rectangle
-           %sub OBB
-           if inRect(rectangles{i},proj_x(tri.Triangulation(j,1)),proj_y(tri.Triangulation(j,1))) > 0 ...
-                   || inRect(rectangles{i},proj_x(tri.Triangulation(j,2)),proj_y(tri.Triangulation(j,2))) > 0 ...
-                   || inRect(rectangles{i},proj_x(tri.Triangulation(j,3)),proj_y(tri.Triangulation(j,3))) > 0 
-              
-              rectangles{i}.num_triangles = rectangles{i}.num_triangles+1;
-              rectangles{i}.triangle_set(rectangles{i}.num_triangles) = j; %save the index into the triangulation      
-               shadows(j)=i;
-           end
-       end
-    end
-    
+%     for j=1:tri.size
+%        for i=1:sg_nx
+%            %eww.....but checks if any of the 3 vertices are in a rectangle
+%            %sub OBB
+%            if inRect(rectangles{i},proj_x(tri.Triangulation(j,1)),proj_y(tri.Triangulation(j,1))) > 0 ...
+%                    || inRect(rectangles{i},proj_x(tri.Triangulation(j,2)),proj_y(tri.Triangulation(j,2))) > 0 ...
+%                    || inRect(rectangles{i},proj_x(tri.Triangulation(j,3)),proj_y(tri.Triangulation(j,3))) > 0 
+%               
+%               rectangles{i}.num_triangles = rectangles{i}.num_triangles+1;
+%               rectangles{i}.triangle_set(rectangles{i}.num_triangles) = j; %save the index into the triangulation      
+%                shadows(j)=i;
+%            end
+%        end
+%     end
+%     
 %     triangle_set{:}=sort(triangle_set
     
 %      fprintf('building shadows\n');
@@ -333,7 +333,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
             p = patch( ...
                 'Vertices',[proj_x(:) proj_y(:)], ...
                 'Faces', tri.Triangulation, ...
-                'facevertexcdata',shadows(:),...
+                'facevertexcdata',proj_z(:),...
                 'facecolor','flat',...
                 'edgecolor','black');
         end
@@ -343,7 +343,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
              set(p,'facevertexcdata',proj_z(:));
         else
             %for "as the sun"
-            set(p,'Vertices',[proj_x(:) proj_y(:) ],'facevertexcdata',shadows(:));
+            set(p,'Vertices',[proj_x(:) proj_y(:) ],'facevertexcdata',proj_z(:));
   
             axis tight
 

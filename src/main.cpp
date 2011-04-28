@@ -62,7 +62,7 @@ int main()
 		std::cout.precision(30);
 // 		std::cout << "Wait for debug attach" <<std::endl;
 // 		_getch();
-		matlab* engine = new matlab();
+		matlab_engine* engine = new matlab_engine();
 		graphics* gfx = new graphics(engine);
 		engine->start();
 		engine->set_working_dir();

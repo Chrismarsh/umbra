@@ -40,11 +40,11 @@
 
 
 
-class matlab
+class matlab_engine
 {
 public:
-	matlab();
-	~matlab();
+	matlab_engine();
+	~matlab_engine();
 
 	
 	

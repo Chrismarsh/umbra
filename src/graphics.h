@@ -37,7 +37,7 @@ class graphics
 {
 public:
 
-	graphics(matlab *engine);
+	graphics(matlab_engine *engine);
 	~graphics();
 
 	double plot_patch(std::string vertices, std::string faces, std::string face_data);
@@ -54,6 +54,6 @@ public:
 
 
 private:
-	matlab* m_engine;
+	matlab_engine* m_engine;
 	
 };

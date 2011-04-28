@@ -28,7 +28,7 @@
 
 
 #include "matlab_engine.h"
-void matlab::start()
+void matlab_engine::start()
 {
 	if (!(m_engine = engOpen("\0"))) 
 	{
@@ -36,7 +36,7 @@ void matlab::start()
 	}
 }
 
-void matlab::stop()
+void matlab_engine::stop()
 {
 	if(m_engine)
 	{
@@ -46,7 +46,7 @@ void matlab::stop()
 	m_engine = NULL;
 }
 
-void matlab::evaluate( std::string command )
+void matlab_engine::evaluate( std::string command )
 {
 	if(m_engine)
 	{
@@ -63,7 +63,7 @@ void matlab::evaluate( std::string command )
 	}
 }
 
-void matlab::put( std::string name, mxArray* var )
+void matlab_engine::put( std::string name, mxArray* var )
 {
 	if(m_engine)
 	{
@@ -76,7 +76,7 @@ void matlab::put( std::string name, mxArray* var )
 	}
 }
 
-mxArray* matlab::get( std::string name )
+mxArray* matlab_engine::get( std::string name )
 {
 
 		if(m_engine)
@@ -94,7 +94,7 @@ mxArray* matlab::get( std::string name )
 		}
 }
 
-matlab::~matlab()
+matlab_engine::~matlab_engine()
 {
 	if(m_engine)
 	{
@@ -103,12 +103,12 @@ matlab::~matlab()
 	m_engine = NULL;
 }
 
-matlab::matlab()
+matlab_engine::matlab_engine()
 {
 	m_engine = NULL;
 }
 
-void matlab::set_working_dir( std::string dir )
+void matlab_engine::set_working_dir( std::string dir )
 {
 	if(m_engine)
 	{
@@ -121,7 +121,7 @@ void matlab::set_working_dir( std::string dir )
 	}
 }
 
-void matlab::set_working_dir()
+void matlab_engine::set_working_dir()
 {
 	char path[_MAX_PATH];
 	_getcwd(path, _MAX_PATH);
@@ -130,7 +130,7 @@ void matlab::set_working_dir()
 
 }
 
-std::string matlab::get_last_error()
+std::string matlab_engine::get_last_error()
 {
 	if(m_engine)
 	{
@@ -158,7 +158,7 @@ std::string matlab::get_last_error()
 	}
 }
 
-void matlab::put_double_matrix( std::string name, const arma::mat* mat )
+void matlab_engine::put_double_matrix( std::string name, const arma::mat* mat )
 {
 	mxArray*  mx = mxCreateDoubleMatrix(mat->n_rows, mat->n_cols, mxREAL);
 	memcpy(mxGetPr(mx),mat->memptr(),mat->n_elem*sizeof(double));
@@ -166,7 +166,7 @@ void matlab::put_double_matrix( std::string name, const arma::mat* mat )
 	mxDestroyArray(mx);
 }
 
-arma::mat* matlab::get_double_matrix( std::string name)
+arma::mat* matlab_engine::get_double_matrix( std::string name)
 {
 	mxArray* mx = get(name);
 
@@ -185,7 +185,7 @@ arma::mat* matlab::get_double_matrix( std::string name)
 
 }
 
-arma::vec* matlab::get_double_vector( std::string name )
+arma::vec* matlab_engine::get_double_vector( std::string name )
 {
 	mxArray* mx = get(name);
 
@@ -208,7 +208,7 @@ arma::vec* matlab::get_double_vector( std::string name )
 
 }
 
-double matlab::get_scaler( std::string name )
+double matlab_engine::get_scaler( std::string name )
 {
 	if(m_engine)
 	{
@@ -217,7 +217,7 @@ double matlab::get_scaler( std::string name )
 	return 0.0;
 }
 
-void matlab::put_double_vector( std::string name, const arma::vec* vec )
+void matlab_engine::put_double_vector( std::string name, const arma::vec* vec )
 {
 	mxArray*  mx = mxCreateDoubleMatrix(vec->n_rows, 1, mxREAL);
 	memcpy(mxGetPr(mx),vec->memptr(),vec->n_elem*sizeof(double));

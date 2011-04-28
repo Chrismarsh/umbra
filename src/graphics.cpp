@@ -48,7 +48,7 @@ double graphics::plot_patch( std::string vertices, std::string faces, std::strin
 		return -1;
 }
 
-graphics::graphics( matlab *engine )
+graphics::graphics( matlab_engine *engine )
 {
 	m_engine = engine;
 }

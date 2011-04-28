@@ -42,7 +42,7 @@ class triangulation
 {
 
 public:
-	triangulation(matlab* engine);
+	triangulation(matlab_engine* engine);
 	~triangulation();
 	void create_delaunay(arma::vec& x, arma::vec& y, arma::vec& z);
 	size_t get_num_tri();
@@ -73,7 +73,7 @@ private:
 	size_t m_size;  //number of triangulations
 
 	//ptr to the matlab engine
-	matlab* m_engine;
+	matlab_engine* m_engine;
 
 };
 

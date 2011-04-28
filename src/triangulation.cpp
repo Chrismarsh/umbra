@@ -107,7 +107,7 @@ size_t triangulation::get_num_tri()
 	return m_size;
 }
 
-triangulation::triangulation( matlab* engine )
+triangulation::triangulation( matlab_engine* engine )
 {
 	m_engine = engine;
 	m_size = 0;

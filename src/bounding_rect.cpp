@@ -166,7 +166,7 @@ rect* bounding_rect::get_rect( int i, int j )
 //	 return m_rectangles.at(i);
 }
 
-bounding_rect::bounding_rect( matlab* m_engine )
+bounding_rect::bounding_rect( matlab_engine* m_engine )
 {
 	this->m_engine = m_engine;
 

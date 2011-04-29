@@ -59,11 +59,10 @@ int main()
 	try
 	{
 
-		std::cout.precision(30);
-// 		std::cout << "Wait for debug attach" <<std::endl;
-// 		_getch();
 		matlab_engine* engine = new matlab_engine();
 		graphics* gfx = new graphics(engine);
+
+
 		engine->start();
 		engine->set_working_dir();
 
@@ -72,8 +71,8 @@ int main()
 		//loads the data via matlab
 		std::cout << "Loading data" << std::endl;
 		engine->evaluate("load square_nodes_2m.csv");
-
-		arma::mat* xyz = engine->get_double_matrix("square_nodes_2m");
+		arma::mat* xyz = NULL;
+		xyz = engine->get_double_matrix("square_nodes_2m");
 
 		if(!xyz)
 			throw std::exception(engine->get_last_error().c_str());
@@ -85,26 +84,22 @@ int main()
 		triangulation* tri = new triangulation(engine);
 		tri->create_delaunay(xyz->unsafe_col(0),xyz->unsafe_col(1),xyz->unsafe_col(2));
 
-		std::cout << "Finding obs triangle..." << std::endl;
-		triangle* obs_tri = tri->find_containing_triangle(626345.8844,5646903.1124);
-
-		if(!obs_tri)
-			throw std::exception("Can't find containing triangle");
+// 		std::cout << "Finding obs triangle..." << std::endl;
+// 		triangle* obs_tri = tri->find_containing_triangle(626345.8844,5646903.1124);
+// 		if(!obs_tri)
+// 			throw std::exception("Can't find containing triangle");
 
 		std::cout << "Creating face normals..." <<std::endl;
 		tri->compute_face_normals();
 
-		//build bounding rect
-		bounding_rect* BBR = new bounding_rect(engine);
-
 		//send 
 		std::cout << "Sending triangulation to matlab..." <<std::endl;
-		engine->put_double_matrix("tri",&(arma::conv_to<arma::mat>::from(tri->get_tri_index())));
+		engine->put_double_matrix("tri",&(tri->matlab_tri_matrix()));
+
+		std::cout << "Sending domain data to matlab..." <<std::endl;
 		engine->put_double_matrix("mxDomain",xyz);
+		
 
-
-		int num_nodes = xyz->n_rows;
-		arma::mat rot_domain(num_nodes,3);
  
 		//start up time
 		posix_time::ptime time (gregorian::date(2010,gregorian::Sep,15), 
@@ -165,11 +160,6 @@ int main()
 			//convert to radians
 			double	A  = Az * M_PI/180;
 			double E  = El * M_PI/180;
-			arma::vec S;
-			S << cos(El) * sin(Az) << arma::endr
-			  << cos(El) * cos(Az) << arma::endr
-			  << sin(El) << arma::endr;
-
 
 			arma::vec obs_pt;
 
@@ -186,35 +176,109 @@ int main()
 					<< sin(q0)*sin(z0)  << -cos(z0)*sin(q0) << cos(q0) << arma::endr;
 
 				//perform the euler rotation
-				for(int i = 0; i<num_nodes;i++)
+				for(size_t i = 0; i < tri->size(); i++)
 				{
+
+					//-------------
+					//Rotate the data
+					//------------------
+
+					//get the ith triangle coordinate
+
+					point rot_v0,rot_v1,rot_v2;
 					arma::vec coord(3);
-					coord(0) = (*xyz)(i,0);
-					coord(1) = (*xyz)(i,1);
-					coord(2) = (*xyz)(i,2);
+
+					size_t index = tri->operator()(i).global_id[0];
+					//vertex 0
+					coord(0) = (*xyz)(tri->operator()(i).global_id[0]-1,0);
+					coord(1) = (*xyz)(tri->operator()(i).global_id[0]-1,1);
+					coord(2) = (*xyz)(tri->operator()(i).global_id[0]-1,2);
 
 					coord = K*coord;
-					rot_domain(i,0)=coord(0);
-					rot_domain(i,1)=coord(1);
-					rot_domain(i,2)=coord(2);
+
+					rot_v0.x=coord(0);
+					rot_v0.y=coord(1);
+					rot_v0.z=coord(2);
+
+					//vertex 1
+					index = tri->operator()(i).global_id[1];
+					coord(0) = (*xyz)(tri->operator()(i).global_id[1]-1,0);
+					coord(1) = (*xyz)(tri->operator()(i).global_id[1]-1,1);
+					coord(2) = (*xyz)(tri->operator()(i).global_id[1]-1,2);
+
+					coord = K*coord;
+
+					rot_v1.x=coord(0);
+					rot_v1.y=coord(1);
+					rot_v1.z=coord(2);
+
+					//vertex 2
+					index = tri->operator()(i).global_id[2];
+					coord(0) = (*xyz)(tri->operator()(i).global_id[2]-1,0);
+					coord(1) = (*xyz)(tri->operator()(i).global_id[2]-1,1);
+					coord(2) = (*xyz)(tri->operator()(i).global_id[2]-1,2);
+
+					coord = K*coord;
+
+					rot_v2.x=coord(0);
+					rot_v2.y=coord(1);
+					rot_v2.z=coord(2);
+
+					tri->operator()(i).set_vertex_values(rot_v0, rot_v1, rot_v2);
+
+					//---------------
+					//set the initial radiation calculation
+					//---------------
+
+					//radiation data
+					//solar vector
+					arma::vec S;
+					  S << cos(El) * sin(Az) << arma::endr
+						<< cos(El) * cos(Az) << arma::endr
+						<< sin(El) << arma::endr;
+
+					arma::vec s_t;
+					s_t << sin(S(1))*cos(S(2)) << arma::endr
+						<< sin(S(1))*sin(S(2)) << arma::endr
+						<< cos (S(1)) << arma::endr;
+
+					//face normal
+					double angle = acos(arma::norm_dot(s_t,tri->operator()(i).get_facenormal()));
+					double rad =  1370.0/1.0344 *  cos(angle) *0.75; //use a "default" transmittance
+					rad = rad <0 ? 0: rad;
+					tri->operator()(i).radiation = rad;
 				}
 
-				//need to update what the triangle data points to, as it will be by default initialized to that of the triangulation data
-				tri->set_vertex_data(rot_domain);
+				//put the rotated domain to matlab
+				std::cout <<"Sending rotated matrix to matlab..." <<std::endl;
+
+				int num_nodes = xyz->n_rows;
+				arma::mat rot_domain(num_nodes,3);
+
+				for(size_t i=0;i<tri->size();i++)
+				{
+					rot_domain((*tri)(i).global_id[0]-1,0) = (*tri)(i).get_vertex(0).x;
+					rot_domain((*tri)(i).global_id[0]-1,1) = (*tri)(i).get_vertex(0).y;
+					rot_domain((*tri)(i).global_id[0]-1,1) = (*tri)(i).get_vertex(0).z;
+
+					rot_domain((*tri)(i).global_id[1]-1,0) = (*tri)(i).get_vertex(1).x;
+					rot_domain((*tri)(i).global_id[1]-1,1) = (*tri)(i).get_vertex(1).y;
+					rot_domain((*tri)(i).global_id[1]-1,1) = (*tri)(i).get_vertex(1).z;
+
+					rot_domain((*tri)(i).global_id[2]-1,0) = (*tri)(i).get_vertex(2).x;
+					rot_domain((*tri)(i).global_id[2]-1,1) = (*tri)(i).get_vertex(2).y;
+					rot_domain((*tri)(i).global_id[2]-1,1) = (*tri)(i).get_vertex(2).z;
+				}
+
 				engine->put_double_matrix("mxRot",&rot_domain);
 
+				std::cout <<"Building BBR..." <<std::endl;
+				//build bounding rect
+				bounding_rect* BBR = new bounding_rect(engine);
 				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,50);
 			
-				//not a great way of doing this, but it's compatible with matlab's plotting
-				arma::vec shadows(tri->get_num_tri());
-				shadows.zeros();
-				arma::vec radiation(tri->get_num_tri());
-				radiation.zeros();
-
-
-				std::cout <<"Building BBR..." <<std::endl;
 				//for each triangle
-				for(int i = 0; i< tri->get_num_tri();i++)
+				for(int i = 0; i< tri->size();i++)
 				{
 					//for each bounding box segment
 					//#pragma omp parallel for
@@ -224,30 +288,16 @@ int main()
 						{
 							triangle& t = tri->operator()(i);
 
-							if (  BBR->pt_in_rect(t(0).x, t(0).y, BBR->get_rect(j,k)) || //pt1
-								  BBR->pt_in_rect(t(1).x, t(1).y, BBR->get_rect(j,k)) || //pt2
-								  BBR->pt_in_rect(t(2).x, t(2).y, BBR->get_rect(j,k)) )  //pt3
+							if (  BBR->pt_in_rect(t.get_vertex(0).x, t.get_vertex(0).y, BBR->get_rect(j,k)) || //pt1
+								  BBR->pt_in_rect(t.get_vertex(1).x, t.get_vertex(1).y, BBR->get_rect(j,k)) || //pt2
+								  BBR->pt_in_rect(t.get_vertex(2).x, t.get_vertex(2).y, BBR->get_rect(j,k)) )  //pt3
 							{
-								BBR->get_rect(j,k)->triangles.push_back(&tri->operator()(i));
-								BBR->get_rect(j,k)->m_globalID.push_back(i);
-								//shadows(i)=j*k; //uncommenting this will color the triangles based on BBR segment. good for debugging
+								BBR->get_rect(j,k)->triangles.push_back(&t);
 							}
 						}
 
 					}
 
-					//radiation data
-					//solar vector
-					arma::vec s_t;
-					s_t << sin(S(1))*cos(S(2)) << arma::endr
-						<< sin(S(1))*sin(S(2)) << arma::endr
-						<< cos (S(1)) << arma::endr;
-					//face normal
-					arma::vec normal = tri->operator()(i).get_facenormal();
-					double angle = acos(arma::norm_dot(s_t,tri->operator()(i).get_facenormal()));
-					double rad =  1370.0/1.0344 *  cos(angle) *0.75; //use a "default" transmittance
-					rad = rad <0 ? 0: rad;
-					radiation(i) = rad;
 				}
 
 				
@@ -262,8 +312,8 @@ int main()
 						std::sort(BBR->get_rect(i,ii)->triangles.begin(),BBR->get_rect(i,ii)->triangles.end(),
 							[](triangle* a, triangle* b)->bool
 						{
-							double a_avg = (a->get_vertex_value(0).z + a->get_vertex_value(1).z + a->get_vertex_value(2).z)/3.0;
-							double b_avg = (b->get_vertex_value(0).z + b->get_vertex_value(1).z + b->get_vertex_value(2).z)/3.0;
+							double a_avg = (a->get_vertex(0).z + a->get_vertex(1).z + a->get_vertex(2).z)/3.0;
+							double b_avg = (b->get_vertex(0).z + b->get_vertex(1).z + b->get_vertex(2).z)/3.0;
 
 							return a_avg > b_avg;
 						});
@@ -280,25 +330,15 @@ int main()
 							for(int k=j; k<num_tri;k++)
 							{
 									triangle* tk = (BBR->get_rect(i,ii)->triangles.at(k));
-									arma::uvec zj = tri->get_index(BBR->get_rect(i,ii)->m_globalID[j]);
-									arma::uvec zk = tri->get_index(BBR->get_rect(i,ii)->m_globalID[k]);
-									
-									double zj_avg =  (rot_domain(zj(0)-1,2) + rot_domain(zj(1)-1,2) + rot_domain(zj(2)-1,2))/3.0;
-									double zk_avg = (rot_domain(zk(0)-1,2) + rot_domain(zk(1)-1,2) + rot_domain(zk(2)-1,2))/3.0;
+									double tj_avg = (tj->get_vertex(0).z + tj->get_vertex(1).z + tj->get_vertex(2).z)/3.0;
+									double tk_avg = (tk->get_vertex(0).z + tk->get_vertex(1).z + tk->get_vertex(2).z)/3.0;
 
-
-// 									if(shadows(BBR->get_rect(i,ii)->m_globalID[k]) == 0.0 
-// 										&&  (rot_domain(zj(0)-1,2) >  rot_domain(zk(0)-1,2) &&
-// 											 rot_domain(zj(1)-1,2) >  rot_domain(zk(1)-1,2) &&
-// 											 rot_domain(zj(2)-1,2) >  rot_domain(zk(2)-1,2)))
-// 									
-								    if(shadows(BBR->get_rect(i,ii)->m_globalID[k]) == 0.0 &&
-									 zj_avg > zk_avg)
+								    if(	 tj_avg > tk_avg)
 									{
 										//does tj contain any of tk's pts?
 										int lfactor=tj->intersects(tk);
-										shadows(BBR->get_rect(i,ii)->m_globalID[k]) = lfactor;
-										radiation(BBR->get_rect(i,ii)->m_globalID[k]) *= ((4.0-lfactor)/4.0);
+										tj->shadow = lfactor;
+										tj->radiation*= ((4.0-lfactor)/4.0);
 									}
 							}
 						}
@@ -306,9 +346,21 @@ int main()
 				}
 
 				
+				
+				arma::vec shadows(tri->size());
+				arma::vec radiation(tri->size());
+
+				//this maybe wrong?????
+				for(size_t i=0;i<tri->size();i++)
+				{
+					shadows(i) = (*tri)(i).shadow;
+					radiation(i) = (*tri)(i).radiation;
+			
+				}
+
 				engine->put_double_vector("shadows",&shadows);
 				engine->put_double_vector("radiation",&radiation);
-				engine->put_double_matrix("mxRot",&rot_domain);
+
 			
 
 

@@ -39,38 +39,69 @@ class triangle
 public:
 	//use xyz triples in the vector
 	//store the index like matlab
-	triangle( point vertex1, point vertex2, point vertex3, size_t cur_rec_depth=1);
+	triangle(point vertex1, point vertex2, point vertex3, size_t cur_rec_depth=1);
 	triangle(size_t cur_rec_depth);
 
 
-	//returns the v-th vertex[0-2] of the triangle
-	point operator()(size_t v);
+	/*Setters*/
 
+	//recomputes the subtriangles
 	void update_subtri();
+	void set_vertex_values( point vertex1, point vertex2, point vertex3);
+	void set_facenormal(arma::vec& normal);
+
+	/*Getters*/
+	
+	//returns the v-th vertex[0-2] of the triangle
+//	point operator()(size_t v);
+	point get_vertex(size_t vertex);
+	point get_center();
+
+	//get the t-th subtriangle
 	triangle& sub_tri(size_t t);
 
-	void set_vertex_values( point vertex1, point vertex2, point vertex3);
-	point get_vertex_value(size_t vertex);
+
 	bool contains(double x, double y);
 	bool contains(point xy);
 	int intersects(triangle* t);
-	point get_center();
-	void set_facenormal(arma::vec& normal);
 	arma::vec get_facenormal();
 
+	//information for the physical model
+	double radiation;
+	double shadow;
+
+	//this is the index used by matlab's triangulation
+	//it is [1 .. N] where N is number of triangles
+	//it starts at 1 because Matlab's indexing starts at 1
+	size_t global_id[3];
+
+
 private:
+
+	//list of the vertexes
 	point m_vertex_list[3];
-	
+
+	//center of the triangle
 	point m_center;
-	//always 4 subriangles
+
+	//always 4 subtriangles at the moment
 	triangle** m_sub_tri;
 
 	//set the number of sub triangles
 	size_t m_cur_rec_depth;
 
+	//surface normal vector
 	arma::vec m_surface_normal;
+
+	//helper functions:
 
 	//get the mid point of a line segment
 	point* midpoint(point& p1, point& p2);
 	point  calc_center(triangle* t);
+
+
+
+
+
+
 };

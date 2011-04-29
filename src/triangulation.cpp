@@ -56,16 +56,14 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 		//change this later to the struct lookup
 		m_engine->evaluate("t=tri.Triangulation");
 		//get our triangulation structure from matlab
-		mxArray* tri = NULL;
-		tri = m_engine->get("t");
+		mxArray* tri = m_engine->get("t");
 	
-
 		//will be n * 3
 		const mwSize* size = mxGetDimensions(tri);
  		m_size = size[0]; //first element is the # of rows
 		
 		double* t = mxGetPr(tri);
-		m_tri = new arma::umat(m_size,3);
+
 		for (size_t i = 0;i<m_size; i++)
 		{
 			//col major lookup!!!
@@ -74,10 +72,6 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 				int v1 = int(t[i+0*m_size]); //v1 -= 1;
 				int v2 = int(t[i+1*m_size]); //v2 -= 1;
 				int v3 = int(t[i+2*m_size]); //v3 -= 1;
-
-				m_tri->operator()(i,0) = v1;
-				m_tri->operator()(i,1) = v2;
-				m_tri->operator()(i,2) = v3;
 
 				point vertex1,vertex2,vertex3;
 				vertex1.x = x(v1-1);
@@ -93,16 +87,17 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 				vertex3.z = z(v2-1);
 
 				m_triangles.push_back(new triangle(vertex1,vertex2,vertex3,1));
-		//std::cout << i << std::endl;
+				m_triangles[i]->global_id[0] = v1;
+				m_triangles[i]->global_id[1] = v2;
+				m_triangles[i]->global_id[2] = v3;
 		}
 	
 		//clean up in matlab
 		m_engine->evaluate("clear t xy tri;");
-
 	}
 }
 
-size_t triangulation::get_num_tri()
+size_t triangulation::size()
 {
 	return m_size;
 }
@@ -111,7 +106,7 @@ triangulation::triangulation( matlab_engine* engine )
 {
 	m_engine = engine;
 	m_size = 0;
-	m_tri = NULL ;
+
 }
 
 triangulation::~triangulation()
@@ -120,21 +115,7 @@ triangulation::~triangulation()
 	{
 		delete *it;
 	}
-
-	delete m_tri;
-
 	
-}
-
-arma::uvec triangulation::get_index( size_t t )
-{
-	arma::uvec v(3);
-	
-	v(0) = m_tri->operator()(t,0);
-	v(1) = m_tri->operator()(t,1);
-	v(2) = m_tri->operator()(t,2);
-
-	return v;
 }
 
 triangle& triangulation::operator()(size_t t)
@@ -147,11 +128,13 @@ void triangulation::set_vertex_data( arma::mat& data )
 	if(data.n_cols != 3)
 		throw std::exception("Wrong number of columns");
 
-	for(size_t i = 0;i<m_size;i++)
+	//loop over all triangles
+
+	for(auto it=m_triangles.begin(); it != m_triangles.end(); ++it)
 	{
-		size_t v1 = m_tri->operator()(i,0);
-		size_t v2 = m_tri->operator()(i,1);
-		size_t v3 = m_tri->operator()(i,2);
+		size_t v1 = (*it)->global_id[0];
+		size_t v2 = (*it)->global_id[1];
+		size_t v3= (*it)->global_id[2];
 
 		point vertex1,vertex2,vertex3;
 		vertex1.x = data(v1-1,0);
@@ -166,27 +149,19 @@ void triangulation::set_vertex_data( arma::mat& data )
 		vertex3.y = data(v3-1,1);
 		vertex3.z = data(v3-1,2);
 
-
-		m_triangles[i]->set_vertex_values(vertex1, vertex2, vertex3);
-
+		(*it)->set_vertex_values(vertex1, vertex2, vertex3);
 
 	}
-}
 
-arma::umat& triangulation::get_tri_index()
-{
-	return *m_tri;
 }
 
 void triangulation::compute_face_normals()
 {
-
 	for(auto it = m_triangles.begin(); it != m_triangles.end(); it++)
 	{
-		triangle* t = *it;
-		point vertex1 = t->get_vertex_value(0);
-		point vertex2 = t->get_vertex_value(1);
-		point vertex3 = t->get_vertex_value(2);
+		point vertex1 = (*it)->get_vertex(0);
+		point vertex2 = (*it)->get_vertex(1);
+		point vertex3 = (*it)->get_vertex(2);
 		
 		arma::vec AB;
 		AB << vertex2.x - vertex1.x << vertex2.y - vertex1.y << vertex2.z - vertex1.z << arma::endr;
@@ -194,12 +169,9 @@ void triangulation::compute_face_normals()
 		AC << vertex3.x - vertex1.x << vertex3.y - vertex1.y << vertex3.z - vertex1.z << arma::endr;
 
 		arma::vec normal = cross(AB,AC);
-		t->set_facenormal(normal);
+		(*it)->set_facenormal(normal);
 
 	}
-
-
-
 }
 
 triangle* triangulation::find_containing_triangle( double x,double y )
@@ -207,14 +179,23 @@ triangle* triangulation::find_containing_triangle( double x,double y )
 	for(std::vector<triangle*>::iterator it=m_triangles.begin(); it != m_triangles.end(); it++)
 	{
 		if( (*it)->contains(x,y) )
-		{
 			return *it;
-		}
-
 	}
 
 	return NULL;
-
-
 }
 
+arma::mat triangulation::matlab_tri_matrix()
+{
+	arma::mat tri(m_size,3);
+	size_t i=0;
+	for(auto it=m_triangles.begin();it!=m_triangles.end();it++)
+	{
+		tri(i,0) = (*it)->global_id[0];
+		tri(i,1) = (*it)->global_id[1];
+		tri(i,2) = (*it)->global_id[2];
+		i++;
+	}
+
+	return tri;
+}

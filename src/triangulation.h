@@ -31,8 +31,6 @@
 
 #include <vector>
 #include <iostream>
-//matlab engine
-#include <engine.h>
 #include <armadillo>
 
 #include "matlab_engine.h"
@@ -44,32 +42,33 @@ class triangulation
 public:
 	triangulation(matlab_engine* engine);
 	~triangulation();
+
+	//Create a delaunay triangulation
 	void create_delaunay(arma::vec& x, arma::vec& y, arma::vec& z);
-	size_t get_num_tri();
+
+	//return the size of the triangluation
+	size_t size();
+
+	//set the vertex data. It is assumed that t-th triangle's global-id is an index into data
 	void set_vertex_data(arma::mat& data);
-	arma::uvec get_index(size_t t);
+
 	//returns the t-th triangle
 	triangle& operator()(size_t t);
 	
-	//get the matlab compliant triangulation index that contains indexes into the data array
-	arma::umat& get_tri_index();
+	//computer the face normals for all the triangles.
 	void compute_face_normals();
 
 	triangle* find_containing_triangle(double x, double y);
 
-	
+	//creates the triangulation matrix for matlab
+	arma::mat matlab_tri_matrix();
 
 
 
 private:
-
-
-
-	//these two structures need to stay in sync so that matlab can plot them
 	//the triangles
 	std::vector<triangle*> m_triangles;
-	//triangulation, stored as a list of indexes into the x,y,z data. This is like Matlab
-	arma::umat* m_tri;  //size * 3
+
 	size_t m_size;  //number of triangulations
 
 	//ptr to the matlab engine

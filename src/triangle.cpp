@@ -344,9 +344,9 @@ int triangle::intersects( triangle* t )
 
 		if(!intersect)
 		{
-			if( t->contains(this->get_vertex_value(0)) ||
-				t->contains(this->get_vertex_value(1)) ||
-				t->contains(this->get_vertex_value(2)))
+			if( t->contains(this->get_vertex(0)) ||
+				t->contains(this->get_vertex(1)) ||
+				t->contains(this->get_vertex(2)))
 			{
 				intersect = true;
 			}
@@ -387,14 +387,15 @@ bool triangle::contains(double x, double y)
 
 }
 
-point triangle::operator()(size_t v )
+point triangle::get_vertex( size_t vertex )
 {
-	point p;
-	p.x = (m_vertex_list[v].x);
-	p.y = (m_vertex_list[v].y);
-//	p.z = *(m_vertex_list[v].z);
-	return p;
+	return m_vertex_list[vertex];
 }
+// 
+// point triangle::operator()(size_t v )
+// {
+// 	return m_vertex_list[vertex];
+// }
 
 
 point triangle::get_center()
@@ -482,8 +483,5 @@ arma::vec triangle::get_facenormal()
 	return m_surface_normal;
 }
 
-point triangle::get_vertex_value( size_t vertex )
-{
-	return m_vertex_list[vertex];
-}
+
 

@@ -49,8 +49,9 @@ public:
 	void hold_on();
 	void hold_off();
 		
-	double add_title(std::string title, int fontsize = 14);
+	double add_title(std::string title, int fontsize = 14,std::string color="black");
 
+	void save_to_file(std::string fname);
 
 
 private:

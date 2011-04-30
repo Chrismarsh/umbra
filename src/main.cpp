@@ -102,14 +102,14 @@ int main()
 
  
 		//start up time
-		posix_time::ptime time (gregorian::date(2010,gregorian::Sep,15), 
-							posix_time::hours(16)+posix_time::minutes(30)); //start at 6am
+		posix_time::ptime time (gregorian::date(2010,gregorian::Nov,9), 
+							posix_time::hours(16)+posix_time::minutes(00)); //start at 6am
 		
-		posix_time::ptime end_time (gregorian::date(2010,gregorian::Sep,15), 
-			posix_time::hours(16)+posix_time::minutes(45)); //end at 6pm
+		posix_time::ptime end_time (gregorian::date(2010,gregorian::Nov,9), 
+			posix_time::hours(16)+posix_time::minutes(30)); 
 
 		//time step
-		posix_time::time_duration dt = posix_time::minutes(15);
+		posix_time::time_duration dt = posix_time::minutes(30);
 
 		//UTC offset. Don't know how to use datetime's UTC converter yet....
 		posix_time::time_duration UTC_offset = posix_time::hours(7);
@@ -224,7 +224,9 @@ int main()
 					rot_v2.y=coord(1);
 					rot_v2.z=coord(2);
 
-					tri->operator()(i).set_vertex_values(rot_v0, rot_v1, rot_v2);
+					(*tri)(i).set_vertex_values(rot_v0, rot_v1, rot_v2);
+					(*tri)(i).shadow = 0.0;
+					(*tri)(i).radiation = 0.0;
 
 					//---------------
 					//set the initial radiation calculation
@@ -237,16 +239,60 @@ int main()
 						<< cos(El) * cos(Az) << arma::endr
 						<< sin(El) << arma::endr;
 
-					arma::vec s_t;
+					arma::vec s_t; //wtf is this????
 					s_t << sin(S(1))*cos(S(2)) << arma::endr
 						<< sin(S(1))*sin(S(2)) << arma::endr
 						<< cos (S(1)) << arma::endr;
 
-					//face normal
-					double angle = acos(arma::norm_dot(s_t,tri->operator()(i).get_facenormal()));
+					arma::vec east(3);
+					east(0) = 1.0; //x
+					east(1) = 0.0; //y
+					east(2) = 0.0;
+
+					arma::vec n(3);
+					n(0) = 0.0; //x
+					n(1) = 0.0; //y
+					n(2) = 1.0;
+
+					arma::vec face(3);
+					face(0) = (*tri)(i).get_facenormal()(0);
+					face(1) = (*tri)(i).get_facenormal()(1);
+					face(2) = (*tri)(i).get_facenormal()(2);
+
+					arma::vec proj_face = face - dot(face,n) * n;
+
+					double face_Az = -atan2(proj_face(0)*east(1) - proj_face(1)*east(0), proj_face(0)*east(0) + proj_face(1)*east(1)) * 180.0/3.14159;
+					if(face_Az < 0.0)
+							face_Az += 360.0;
+
+// 					double face_Az  = acos(arma::norm_dot(north,proj_face)) * 180.0/3.14159;
+// 
+// 					if( _isnan(face_Az))
+// 						face_Az  = acos(arma::dot(north,proj_face)) * 180.0/3.14159;
+				
+// 					if(face_Az >=0.0 && face_Az <= 90.0)
+// 						face_Az = 0;
+// 					else if(face_Az > 90.0 &&  face_Az <=180.0)
+// 						face_Az = 1;
+// 					else if(face_Az > 180.0 && face_Az <=270.0)
+// 						face_Az = 2;
+// 					else
+// 						face_Az = 3;
+
+
+					double angle = acos(arma::norm_dot(S,(*tri)(i).get_facenormal()));
+
+					if(angle > 3.14159/2)
+						angle = 3.14159/2 ;
+
+					
+
 					double rad =  1370.0/1.0344 *  cos(angle) *0.75; //use a "default" transmittance
-					rad = rad <0 ? 0: rad;
-					tri->operator()(i).radiation = rad;
+
+// 					rad = rad <0 ? 0: rad;
+
+
+					(*tri)(i).radiation = rad;//rad;
 				}
 
 				//put the rotated domain to matlab
@@ -254,20 +300,20 @@ int main()
 
 				int num_nodes = xyz->n_rows;
 				arma::mat rot_domain(num_nodes,3);
-
+				rot_domain.zeros();
 				for(size_t i=0;i<tri->size();i++)
 				{
 					rot_domain((*tri)(i).global_id[0]-1,0) = (*tri)(i).get_vertex(0).x;
 					rot_domain((*tri)(i).global_id[0]-1,1) = (*tri)(i).get_vertex(0).y;
-					rot_domain((*tri)(i).global_id[0]-1,1) = (*tri)(i).get_vertex(0).z;
+					rot_domain((*tri)(i).global_id[0]-1,2) = (*tri)(i).get_vertex(0).z;
 
 					rot_domain((*tri)(i).global_id[1]-1,0) = (*tri)(i).get_vertex(1).x;
 					rot_domain((*tri)(i).global_id[1]-1,1) = (*tri)(i).get_vertex(1).y;
-					rot_domain((*tri)(i).global_id[1]-1,1) = (*tri)(i).get_vertex(1).z;
+					rot_domain((*tri)(i).global_id[1]-1,2) = (*tri)(i).get_vertex(1).z;
 
 					rot_domain((*tri)(i).global_id[2]-1,0) = (*tri)(i).get_vertex(2).x;
 					rot_domain((*tri)(i).global_id[2]-1,1) = (*tri)(i).get_vertex(2).y;
-					rot_domain((*tri)(i).global_id[2]-1,1) = (*tri)(i).get_vertex(2).z;
+					rot_domain((*tri)(i).global_id[2]-1,2) = (*tri)(i).get_vertex(2).z;
 				}
 
 				engine->put_double_matrix("mxRot",&rot_domain);
@@ -281,17 +327,18 @@ int main()
 				for(int i = 0; i< tri->size();i++)
 				{
 					//for each bounding box segment
-					//#pragma omp parallel for
+					#pragma omp parallel for
 					for(int j=0; j < BBR->n_rows;j++)
 					{
 						for(int k = 0; k < BBR->n_cols; k++)
 						{
-							triangle& t = tri->operator()(i);
+							triangle& t = (*tri)(i);
 
 							if (  BBR->pt_in_rect(t.get_vertex(0).x, t.get_vertex(0).y, BBR->get_rect(j,k)) || //pt1
 								  BBR->pt_in_rect(t.get_vertex(1).x, t.get_vertex(1).y, BBR->get_rect(j,k)) || //pt2
 								  BBR->pt_in_rect(t.get_vertex(2).x, t.get_vertex(2).y, BBR->get_rect(j,k)) )  //pt3
 							{
+								//t.shadow = j*k;
 								BBR->get_rect(j,k)->triangles.push_back(&t);
 							}
 						}
@@ -314,8 +361,27 @@ int main()
 						{
 							double a_avg = (a->get_vertex(0).z + a->get_vertex(1).z + a->get_vertex(2).z)/3.0;
 							double b_avg = (b->get_vertex(0).z + b->get_vertex(1).z + b->get_vertex(2).z)/3.0;
-
 							return a_avg > b_avg;
+
+// 							if(a->get_vertex(0).z > b->get_vertex(0).z || 
+// 								a->get_vertex(0).z > b->get_vertex(1).z || 
+// 								a->get_vertex(0).z >  b->get_vertex(2).z ||
+// 
+// 								a->get_vertex(1).z > b->get_vertex(0).z || 
+// 								a->get_vertex(1).z > b->get_vertex(1).z || 
+// 								a->get_vertex(1).z >  b->get_vertex(2).z ||
+// 
+// 								a->get_vertex(2).z > b->get_vertex(0).z || 
+// 								a->get_vertex(2).z > b->get_vertex(1).z || 
+// 								a->get_vertex(2).z >  b->get_vertex(2).z )
+// 							{
+// 								return true;
+// 							}
+// 							else
+// 							{
+// 								return false;
+// 							}
+							
 						});
 
 
@@ -335,10 +401,16 @@ int main()
 
 								    if(	 tj_avg > tk_avg)
 									{
-										//does tj contain any of tk's pts?
-										int lfactor=tj->intersects(tk);
-										tj->shadow = lfactor;
-										tj->radiation*= ((4.0-lfactor)/4.0);
+										//does tj is above tk, and tk is shadded by tj
+										int lfactor=tk->intersects(tj);
+
+										//only update it if are making it "more" shadowed.
+										if (tk->shadow < lfactor)
+											tk->shadow = lfactor;
+
+										//this is getting multiplied not matter what, even if it is a poorer estimate.
+										//TODO: must fix
+										tk->radiation *= ((16.0-lfactor)/16.0);
 									}
 							}
 						}
@@ -403,17 +475,26 @@ int main()
 					engine->evaluate("axis tight");
 
 				}
-					
+				engine->evaluate("set(gcf,'color','black');set(gca,'visible','off');");
 //				engine->evaluate("colormap(flipud(gray))");
 
 				//update time w/o UTC offset.
 				ss.str("");
 				ss << time;			
+
+
 		 			
-				ht = gfx->add_title(ss.str());
-			
-				std::cout << "paused" << std::endl;
-				_getch();
+				ht = gfx->add_title(ss.str(),14,"white");
+				
+				
+				posix_time::time_facet* fname_time_facet =new posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
+				std::stringstream fname_time;
+				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet));
+				fname_time << time;
+
+				gfx->save_to_file(fname_time.str());			
+// 				std::cout << "paused" << std::endl;
+// 				_getch();
 			}
 			time = time + dt;
 		}

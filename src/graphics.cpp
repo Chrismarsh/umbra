@@ -64,12 +64,13 @@ double graphics::update_patch( double handle, std::string vertices, std::string 
 
 }
 
-double graphics::add_title( std::string title, int fontsize /*= 14*/ )
+double graphics::add_title( std::string title, int fontsize /*= 14*/,std::string color /*='black'*/ )
 {
 	m_engine->evaluate("if exist('ht','var')==1 delete(ht.th); end");
 	std::string command = std::string("ht = mtit('") + title + std::string("','fontsize',") + boost::lexical_cast<std::string,int>(fontsize) + std::string(")");
 	m_engine->evaluate(command);
 	mxArray* ht =  m_engine->get("ht");
+	m_engine->evaluate(std::string("set(ht.th,'color','") + color + std::string("')"));
 	return (mxGetScalar(ht));
 }
 
@@ -127,4 +128,9 @@ double graphics::plot_line(const arma::vec* x, const arma::vec* y,std::string op
 graphics::~graphics()
 {
 
+}
+
+void graphics::save_to_file( std::string fname )
+{
+	m_engine->evaluate(std::string("export_fig('") + fname +std::string("','-png');"));
 }

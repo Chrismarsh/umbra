@@ -57,8 +57,8 @@ alt = 0.0;
 % datestr(time,'yyyy/mm/dd HH:MM:SS')
 %utc offset
 UTC_offset = 7;
-tstart = datenum('2010/9/15 16:30:00');
-tend = datenum('2010/9/15 16:45:00');
+tstart = datenum('2010/11/9 16:00:00');
+tend = datenum('2010/11/9 16:30:00');
 tstart=datestr(addtodate(tstart,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 tend=datestr(addtodate(tend,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 

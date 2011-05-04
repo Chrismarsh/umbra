@@ -169,7 +169,7 @@ int main()
 
 				//eqns (6) & (7) in Montero
 				double	z0 = M_PI-A;
-				double q0 = M_PI/2 - E;
+				double q0 = M_PI/2.0 - E;
 
 				K   << cos(z0)          << sin(z0)          << 0       <<arma::endr
 					<< -cos(q0)*sin(z0) << cos(q0)*cos(z0)  << sin(q0) << arma::endr
@@ -251,9 +251,6 @@ int main()
  						angle = 3.14159/2.0 ;
 		
 					double rad =  1370.0/1.0344 *  cos(angle) *0.75; //use a "default" transmittance
-
-// 					rad = rad <0 ? 0: rad;
-
 
 					(*tri)(i).radiation = cos(angle);
 				}

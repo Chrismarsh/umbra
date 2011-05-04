@@ -48,7 +48,10 @@ public:
 
 	void hold_on();
 	void hold_off();
-		
+	
+	//toggle colorbar on/off
+	void colorbar(std::string toggle="on");
+
 	double add_title(std::string title, int fontsize = 14,std::string color="black");
 
 	void save_to_file(std::string fname);

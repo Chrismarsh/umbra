@@ -134,3 +134,11 @@ void graphics::save_to_file( std::string fname )
 {
 	m_engine->evaluate(std::string("export_fig('") + fname +std::string("','-png');"));
 }
+
+void graphics::colorbar( std::string toggle/*="on"*/ )
+{
+	if(toggle == "on")
+		m_engine->evaluate("colorbar");
+	else
+		m_engine->evaluate("colorbar('off')");
+}

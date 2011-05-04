@@ -89,8 +89,7 @@ int main()
 // 		if(!obs_tri)
 // 			throw std::exception("Can't find containing triangle");
 
-		std::cout << "Creating face normals..." <<std::endl;
-		tri->compute_face_normals();
+
 
 		//send 
 		std::cout << "Sending triangulation to matlab..." <<std::endl;
@@ -99,14 +98,15 @@ int main()
 		std::cout << "Sending domain data to matlab..." <<std::endl;
 		engine->put_double_matrix("mxDomain",xyz);
 		
-
+		std::cout << "Creating face normals..." <<std::endl;
+		tri->compute_face_normals();
  
 		//start up time
 		posix_time::ptime time (gregorian::date(2010,gregorian::Nov,9), 
-							posix_time::hours(16)+posix_time::minutes(00)); //start at 6am
+							posix_time::hours(13)+posix_time::minutes(00)); //start at 6am
 		
 		posix_time::ptime end_time (gregorian::date(2010,gregorian::Nov,9), 
-			posix_time::hours(16)+posix_time::minutes(30)); 
+			posix_time::hours(13)+posix_time::minutes(30)); 
 
 		//time step
 		posix_time::time_duration dt = posix_time::minutes(30);
@@ -178,7 +178,6 @@ int main()
 				//perform the euler rotation
 				for(size_t i = 0; i < tri->size(); i++)
 				{
-
 					//-------------
 					//Rotate the data
 					//------------------
@@ -227,6 +226,10 @@ int main()
 					(*tri)(i).set_vertex_values(rot_v0, rot_v1, rot_v2);
 					(*tri)(i).shadow = 0.0;
 					(*tri)(i).radiation = 0.0;
+					(*tri)(i).z_prime = (rot_v0.z + rot_v1.z + rot_v2.z)/3.0;
+
+					(*tri)(i).compute_azimuth();
+					(*tri)(i).compute_slope();
 
 					//---------------
 					//set the initial radiation calculation
@@ -234,65 +237,25 @@ int main()
 
 					//radiation data
 					//solar vector
+					//xyz cartesian
 					arma::vec S;
-					  S << cos(El) * sin(Az) << arma::endr
-						<< cos(El) * cos(Az) << arma::endr
-						<< sin(El) << arma::endr;
+					  S << cos(E) * sin(A) << arma::endr
+						<< cos(E) * cos(A) << arma::endr
+						<< sin(E) << arma::endr;
 
-					arma::vec s_t; //wtf is this????
-					s_t << sin(S(1))*cos(S(2)) << arma::endr
-						<< sin(S(1))*sin(S(2)) << arma::endr
-						<< cos (S(1)) << arma::endr;
+					//angle b/w sun and facenormal
+					double angle = acos(arma::dot(S,(*tri)(i).get_facenormal()));
 
-					arma::vec east(3);
-					east(0) = 1.0; //x
-					east(1) = 0.0; //y
-					east(2) = 0.0;
-
-					arma::vec n(3);
-					n(0) = 0.0; //x
-					n(1) = 0.0; //y
-					n(2) = 1.0;
-
-					arma::vec face(3);
-					face(0) = (*tri)(i).get_facenormal()(0);
-					face(1) = (*tri)(i).get_facenormal()(1);
-					face(2) = (*tri)(i).get_facenormal()(2);
-
-					arma::vec proj_face = face - dot(face,n) * n;
-
-					double face_Az = -atan2(proj_face(0)*east(1) - proj_face(1)*east(0), proj_face(0)*east(0) + proj_face(1)*east(1)) * 180.0/3.14159;
-					if(face_Az < 0.0)
-							face_Az += 360.0;
-
-// 					double face_Az  = acos(arma::norm_dot(north,proj_face)) * 180.0/3.14159;
-// 
-// 					if( _isnan(face_Az))
-// 						face_Az  = acos(arma::dot(north,proj_face)) * 180.0/3.14159;
-				
-// 					if(face_Az >=0.0 && face_Az <= 90.0)
-// 						face_Az = 0;
-// 					else if(face_Az > 90.0 &&  face_Az <=180.0)
-// 						face_Az = 1;
-// 					else if(face_Az > 180.0 && face_Az <=270.0)
-// 						face_Az = 2;
-// 					else
-// 						face_Az = 3;
-
-
-					double angle = acos(arma::norm_dot(S,(*tri)(i).get_facenormal()));
-
-					if(angle > 3.14159/2)
-						angle = 3.14159/2 ;
-
-					
-
+					//stop it wrapping around
+  					if(angle > 3.14159/2.0)
+ 						angle = 3.14159/2.0 ;
+		
 					double rad =  1370.0/1.0344 *  cos(angle) *0.75; //use a "default" transmittance
 
 // 					rad = rad <0 ? 0: rad;
 
 
-					(*tri)(i).radiation = rad;//rad;
+					(*tri)(i).radiation = cos(angle);
 				}
 
 				//put the rotated domain to matlab
@@ -318,13 +281,12 @@ int main()
 
 				engine->put_double_matrix("mxRot",&rot_domain);
 
-				std::cout <<"Building BBR..." <<std::endl;
-				//build bounding rect
-				bounding_rect* BBR = new bounding_rect(engine);
-				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,50);
+/* 				std::cout <<"Building BBR..." <<std::endl;
+ 				//build bounding rect
+ 				bounding_rect* BBR = new bounding_rect(engine);
+ 				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,50);
 			
-				//for each triangle
-				for(int i = 0; i< tri->size();i++)
+				//for each triangle				for(int i = 0; i< tri->size();i++)
 				{
 					//for each bounding box segment
 					#pragma omp parallel for
@@ -359,9 +321,11 @@ int main()
 						std::sort(BBR->get_rect(i,ii)->triangles.begin(),BBR->get_rect(i,ii)->triangles.end(),
 							[](triangle* a, triangle* b)->bool
 						{
-							double a_avg = (a->get_vertex(0).z + a->get_vertex(1).z + a->get_vertex(2).z)/3.0;
-							double b_avg = (b->get_vertex(0).z + b->get_vertex(1).z + b->get_vertex(2).z)/3.0;
-							return a_avg > b_avg;
+							return a->z_prime > b->z_prime;
+
+// 							double a_avg = (a->get_vertex(0).z + a->get_vertex(1).z + a->get_vertex(2).z)/3.0;
+// 							double b_avg = (b->get_vertex(0).z + b->get_vertex(1).z + b->get_vertex(2).z)/3.0;
+// 							return a_avg > b_avg;
 
 // 							if(a->get_vertex(0).z > b->get_vertex(0).z || 
 // 								a->get_vertex(0).z > b->get_vertex(1).z || 
@@ -396,11 +360,11 @@ int main()
 							for(int k=j; k<num_tri;k++)
 							{
 									triangle* tk = (BBR->get_rect(i,ii)->triangles.at(k));
-									double tj_avg = (tj->get_vertex(0).z + tj->get_vertex(1).z + tj->get_vertex(2).z)/3.0;
-									double tk_avg = (tk->get_vertex(0).z + tk->get_vertex(1).z + tk->get_vertex(2).z)/3.0;
+// 									double tj_avg = (tj->get_vertex(0).z + tj->get_vertex(1).z + tj->get_vertex(2).z)/3.0;
+// 									double tk_avg = (tk->get_vertex(0).z + tk->get_vertex(1).z + tk->get_vertex(2).z)/3.0;
 
-								    if(	 tj_avg > tk_avg)
-									{
+ 								    if(	 tj->z_prime > tk->z_prime)
+ 									{
 										//does tj is above tk, and tk is shadded by tj
 										int lfactor=tk->intersects(tj);
 
@@ -410,28 +374,31 @@ int main()
 
 										//this is getting multiplied not matter what, even if it is a poorer estimate.
 										//TODO: must fix
-										tk->radiation *= ((16.0-lfactor)/16.0);
+										//tk->radiation *= ((4.0-lfactor)/4.0);
 									}
 							}
 						}
 					}
 				}
 
-				
+				*/
 				
 				arma::vec shadows(tri->size());
 				arma::vec radiation(tri->size());
+				arma::vec zprime(tri->size());
 
 				//this maybe wrong?????
 				for(size_t i=0;i<tri->size();i++)
 				{
 					shadows(i) = (*tri)(i).shadow;
 					radiation(i) = (*tri)(i).radiation;
+					zprime(i) = (*tri)(i).z_prime;
 			
 				}
 
 				engine->put_double_vector("shadows",&shadows);
 				engine->put_double_vector("radiation",&radiation);
+				engine->put_double_vector("zprime",&zprime);
 
 			
 
@@ -449,6 +416,7 @@ int main()
 // 				}
 // 				gfx->hold_off();
 
+				gfx->colorbar();
 
 				//for basin view
 				if(viewpoint=="basin")

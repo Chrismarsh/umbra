@@ -37,6 +37,7 @@ triangle::triangle( point vertex1, point vertex2, point vertex3, size_t cur_rec_
 
 	radiation = 0.0;
 	shadow = 0.0;
+	z_prime = 0.0;
 
 }
 
@@ -48,6 +49,7 @@ triangle::triangle(size_t cur_rec_depth)
 
 	radiation = 0.0;
 	shadow = 0.0;
+	z_prime = 0.0;
 }
 
 
@@ -489,5 +491,37 @@ arma::vec triangle::get_facenormal()
 	return m_surface_normal;
 }
 
+void triangle::compute_azimuth()
+{
+	//convert normal to spherical
+	double r = sqrt(m_surface_normal(0)*m_surface_normal(0) + m_surface_normal(1)*m_surface_normal(1) + m_surface_normal(2)*m_surface_normal(2));
+	double theta = acos(m_surface_normal(2)/r); 
 
+	//y=north
+	double phi = atan2(m_surface_normal(1),m_surface_normal(0)); // + M_PI /*-3.14159/2*/; //south == 0
+	m_azimuth = phi - M_PI/2; //set north = 0
 
+	if(m_azimuth < 0.0)
+		m_azimuth += 2*M_PI;
+}
+
+void triangle::compute_slope()
+{
+	//z surface normal
+	arma::vec n(3);
+	n(0) = 0.0; //x
+	n(1) = 0.0; //y
+	n(2) = 1.0;
+
+	m_slope = acos( arma::norm_dot(m_surface_normal,n));
+}
+
+double triangle::azimuth()
+{
+	return m_azimuth;
+}
+
+double triangle::slope()
+{
+	return m_slope;
+}

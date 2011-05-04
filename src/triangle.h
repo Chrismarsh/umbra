@@ -32,6 +32,10 @@
 #include <vector>
 #include <armadillo>
 #include <iostream>
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+
 #include "point.h"
 
 class triangle
@@ -56,6 +60,11 @@ public:
 //	point operator()(size_t v);
 	point get_vertex(size_t vertex);
 	point get_center();
+	double azimuth();
+	double slope();
+
+	void compute_azimuth();
+	void compute_slope();
 
 	//get the t-th subtriangle
 	triangle& sub_tri(size_t t);
@@ -69,12 +78,14 @@ public:
 	//information for the physical model
 	double radiation;
 	double shadow;
+	double z_prime;
+
 
 	//this is the index used by matlab's triangulation
 	//it is [1 .. N] where N is number of triangles
 	//it starts at 1 because Matlab's indexing starts at 1
 	size_t global_id[3];
-
+		
 
 private:
 
@@ -99,6 +110,12 @@ private:
 	point* midpoint(point& p1, point& p2);
 	point  calc_center(triangle* t);
 
+
+	//in radians.
+	double m_slope;
+
+	//positive, clockwise, from north
+	double m_azimuth;
 
 
 

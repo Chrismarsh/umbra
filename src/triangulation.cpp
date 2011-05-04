@@ -86,7 +86,7 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 				vertex3.y = y(v3-1);
 				vertex3.z = z(v2-1);
 
-				m_triangles.push_back(new triangle(vertex1,vertex2,vertex3,2));
+				m_triangles.push_back(new triangle(vertex1,vertex2,vertex3,1));
 				m_triangles[i]->global_id[0] = v1;
 				m_triangles[i]->global_id[1] = v2;
 				m_triangles[i]->global_id[2] = v3;
@@ -157,27 +157,42 @@ void triangulation::set_vertex_data( arma::mat& data )
 
 void triangulation::compute_face_normals()
 {
-	for(auto it = m_triangles.begin(); it != m_triangles.end(); it++)
+
+	m_engine->evaluate(" [NormalVx NormalVy NormalVz PosVx PosVy PosVz]=computeNormalVectorTriangulation(mxDomain,tri,'center-cells');");
+	m_engine->evaluate("normals=[NormalVx NormalVy NormalVz];");
+	m_engine->evaluate("clear NormalVx NormalVy NormalVz");
+
+	arma::mat* normals = m_engine->get_double_matrix("normals");
+
+	size_t counter = 0;
+	for(auto it=m_triangles.begin();it!=m_triangles.end();it++)
 	{
-		point vertex1 = (*it)->get_vertex(0);
-		point vertex2 = (*it)->get_vertex(1);
-		point vertex3 = (*it)->get_vertex(2);
-		
-		arma::vec AB;
-		AB << vertex2.x - vertex1.x << vertex2.y - vertex1.y << vertex2.z - vertex1.z << arma::endr;
-		arma::vec AC;
-		AC << vertex3.x - vertex1.x << vertex3.y - vertex1.y << vertex3.z - vertex1.z << arma::endr;
-
-		arma::vec normal = cross(AB,AC);
-
-		//make sure we have the up facing normal
-		if (normal(2) < 0)
-			normal = -normal;
-
-
-		(*it)->set_facenormal(normal);
-
+		arma::vec n = normals->row(counter);
+		(*it)->set_facenormal(n);
+		++counter;
 	}
+	m_engine->evaluate("clear normals");
+
+// 	for(auto it = m_triangles.begin(); it != m_triangles.end(); it++)
+// 	{
+// 		point vertex1 = (*it)->get_vertex(0);
+// 		point vertex2 = (*it)->get_vertex(1);
+// 		point vertex3 = (*it)->get_vertex(2);
+// 		
+// 		arma::vec AB;
+// 		AB << vertex2.x - vertex1.x << vertex2.y - vertex1.y << vertex2.z - vertex1.z << arma::endr;
+// 		arma::vec AC;
+// 		AC << vertex3.x - vertex1.x << vertex3.y - vertex1.y << vertex3.z - vertex1.z << arma::endr;
+// 
+// 		arma::vec normal = cross(AB,AC);
+// 
+// 		//make sure we have the up facing normal
+//  		if (normal(2) < 0.0)
+//  			normal = -normal;
+// 
+// 		(*it)->set_facenormal(normal);
+// 
+// 	}
 }
 
 triangle* triangulation::find_containing_triangle( double x,double y )

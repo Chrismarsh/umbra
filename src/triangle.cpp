@@ -39,6 +39,9 @@ triangle::triangle( point vertex1, point vertex2, point vertex3, size_t cur_rec_
 	shadow = 0.0;
 	z_prime = 0.0;
 
+	m_slope = 0.0;
+	m_azimuth = 0.0;
+
 }
 
 triangle::triangle(size_t cur_rec_depth)
@@ -50,6 +53,9 @@ triangle::triangle(size_t cur_rec_depth)
 	radiation = 0.0;
 	shadow = 0.0;
 	z_prime = 0.0;
+
+	m_slope = 0.0;
+	m_azimuth = 0.0;
 }
 
 
@@ -349,7 +355,6 @@ int triangle::intersects( triangle* t )
 	{
 		//does t contain my points?
 		bool intersect = t->contains(this->get_center());
-
 		if(!intersect)
 		{
 			if( t->contains(this->get_vertex(0)) ||
@@ -359,8 +364,21 @@ int triangle::intersects( triangle* t )
 				intersect = true;
 			}
 		}
-
 		return intersect == true ? 1:0;
+
+
+// 		double p1[2]={t->get_vertex(0).x,t->get_vertex(0).y};
+// 		double q1[2]={t->get_vertex(1).x,t->get_vertex(1).y};
+// 		double r1[2]={t->get_vertex(2).x,t->get_vertex(2).y};
+// 
+// 		double p2[2]={this->get_vertex(0).x,this->get_vertex(0).y};
+// 		double q2[2]={this->get_vertex(1).x,this->get_vertex(1).y};
+// 		double r2[2]={this->get_vertex(2).x,this->get_vertex(2).y};
+// 
+// 		int intersect = tri_tri_overlap_test_2d(p1,q1,r1,p2,q2,r2);
+// 		return intersect;
+
+		
 	}
 	else
 		//i have children
@@ -376,22 +394,38 @@ int triangle::intersects( triangle* t )
 
 bool triangle::contains(double x, double y)
 {
+
 	double x1=m_vertex_list[0].x;
-	double y1=m_vertex_list[1].y;
+	double y1=m_vertex_list[0].y;
 
 	double x2=m_vertex_list[1].x;
 	double y2=m_vertex_list[1].y;
 
 	double x3=m_vertex_list[2].x;
 	double y3=m_vertex_list[2].y;
+
+
+// 
+// 	 double Area_PP1P2 =  1.0/2.0 *abs((x*y1-x*y2+x1*y2-x1*y+x2*y-x2*y1));
+// 	 double Area_PP2P3 =  1.0/2.0 *abs((x*y2-x*y3+x2*y3-x2*y+x3*y-x3*y2));
+// 	 double Area_PP3P1 =  1.0/2.0 *abs((x*y3-x*y1+x3*y1-x3*y+x1*y-x1*y3));
+// 	 double Area_P1P2P3 = 1.0/2.0 *abs((x1*y2-x1*y3+x2*y3-x2*y1+x3*y1-x3*y2));
+// 
+// 	double sum = Area_PP1P2 + Area_PP2P3 + Area_PP3P1;
+// 
+// 	if( (sum - Area_P1P2P3) < 0.01)
+// 		return true;
+// 	else
+// 		return false;
+
+
 	double lambda1= ((y2-y3)*(x-x3)+(x3-x2)*(y-y3))/((y2-y3)*(x1-x3)+(x3-x2)*(y1-y3));
 	double lambda2= ((y3-y1)*(x-x3)+(x1-x3)*(y-y3))/((y3-y1)*(x2-x3)+(x1-x3)*(y2-y3));
-	double lambda3=1-lambda1-lambda2;
+	double lambda3= 1.0-lambda1-lambda2;
 
-	return lambda1 > 0 && lambda1 <1 
-		&& lambda2 > 0 && lambda2 < 1 
-		&& lambda3 > 0 && lambda3 <1;
-
+	return lambda1 > 0.0 && lambda1 < 1.0 
+		&& lambda2 > 0.0 && lambda2 < 1.0
+		&& lambda3 > 0.0 && lambda3 < 1.0;
 
 }
 

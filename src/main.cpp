@@ -103,10 +103,10 @@ int main()
  
 		//start up time
 		posix_time::ptime time (gregorian::date(2010,gregorian::Nov,9), 
-							posix_time::hours(13)+posix_time::minutes(00)); //start at 6am
+							posix_time::hours(9)+posix_time::minutes(00)); //start at 6am
 		
 		posix_time::ptime end_time (gregorian::date(2010,gregorian::Nov,9), 
-			posix_time::hours(13)+posix_time::minutes(30)); 
+			posix_time::hours(17)+posix_time::minutes(30)); 
 
 		//time step
 		posix_time::time_duration dt = posix_time::minutes(30);
@@ -158,8 +158,8 @@ int main()
 			arma::mat K; 
 
 			//convert to radians
-			double	A  = Az * M_PI/180;
-			double E  = El * M_PI/180;
+			double	A  = Az * M_PI/180.0;
+			double E  = El * M_PI/180.0;
 
 			arma::vec obs_pt;
 
@@ -176,6 +176,7 @@ int main()
 					<< sin(q0)*sin(z0)  << -cos(z0)*sin(q0) << cos(q0) << arma::endr;
 
 				//perform the euler rotation
+
 				for(size_t i = 0; i < tri->size(); i++)
 				{
 					//-------------
@@ -223,10 +224,19 @@ int main()
 					rot_v2.y=coord(1);
 					rot_v2.z=coord(2);
 
+					coord(0) = (*tri)(i).center.x;
+					coord(1) = (*tri)(i).center.y;
+					coord(2) = (*tri)(i).center.z;
+					coord=K*coord;
+					(*tri)(i).rot_center.x = coord(0);
+					(*tri)(i).rot_center.y = coord(1);
+					(*tri)(i).rot_center.z = coord(2);
+
+					
 					(*tri)(i).set_vertex_values(rot_v0, rot_v1, rot_v2);
 					(*tri)(i).shadow = 0.0;
 					(*tri)(i).radiation = 0.0;
-					(*tri)(i).z_prime = (rot_v0.z + rot_v1.z + rot_v2.z)/3.0;
+					(*tri)(i).z_prime = (*tri)(i).rot_center.z; //(rot_v0.z + rot_v1.z + rot_v2.z)/3.0;
 
 					(*tri)(i).compute_azimuth();
 					(*tri)(i).compute_slope();
@@ -250,9 +260,9 @@ int main()
   					if(angle > 3.14159/2.0)
  						angle = 3.14159/2.0 ;
 		
-					double rad =  1370.0/1.0344 *  cos(angle) *0.75; //use a "default" transmittance
+					double rad =  1370.0/1.0344 *  cos(angle) * 0.75; //use a "default" transmittance
 
-					(*tri)(i).radiation = cos(angle);
+					(*tri)(i).radiation = rad;
 				}
 
 				//put the rotated domain to matlab
@@ -261,6 +271,7 @@ int main()
 				int num_nodes = xyz->n_rows;
 				arma::mat rot_domain(num_nodes,3);
 				rot_domain.zeros();
+
 				for(size_t i=0;i<tri->size();i++)
 				{
 					rot_domain((*tri)(i).global_id[0]-1,0) = (*tri)(i).get_vertex(0).x;
@@ -278,15 +289,16 @@ int main()
 
 				engine->put_double_matrix("mxRot",&rot_domain);
 
-/* 				std::cout <<"Building BBR..." <<std::endl;
+ 				std::cout <<"Building BBR..." <<std::endl;
  				//build bounding rect
  				bounding_rect* BBR = new bounding_rect(engine);
- 				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,50);
+ 				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,20);
 			
-				//for each triangle				for(int i = 0; i< tri->size();i++)
+				//for each triangle				
+				for(int i = 0; i< tri->size();i++)
 				{
 					//for each bounding box segment
-					#pragma omp parallel for
+					//#pragma omp parallel for
 					for(int j=0; j < BBR->n_rows;j++)
 					{
 						for(int k = 0; k < BBR->n_cols; k++)
@@ -319,7 +331,7 @@ int main()
 							[](triangle* a, triangle* b)->bool
 						{
 							return a->z_prime > b->z_prime;
-
+						
 // 							double a_avg = (a->get_vertex(0).z + a->get_vertex(1).z + a->get_vertex(2).z)/3.0;
 // 							double b_avg = (b->get_vertex(0).z + b->get_vertex(1).z + b->get_vertex(2).z)/3.0;
 // 							return a_avg > b_avg;
@@ -354,15 +366,15 @@ int main()
 							triangle* tj = (BBR->get_rect(i,ii)->triangles.at(j));
 
 							//compare to other triangles
-							for(int k=j; k<num_tri;k++)
+							for(int k=j+1; k<num_tri;k++)
 							{
 									triangle* tk = (BBR->get_rect(i,ii)->triangles.at(k));
 // 									double tj_avg = (tj->get_vertex(0).z + tj->get_vertex(1).z + tj->get_vertex(2).z)/3.0;
 // 									double tk_avg = (tk->get_vertex(0).z + tk->get_vertex(1).z + tk->get_vertex(2).z)/3.0;
-
+// 
  								    if(	 tj->z_prime > tk->z_prime)
  									{
-										//does tj is above tk, and tk is shadded by tj
+ 										//tj is above tk, and tk is shadded by tj?
 										int lfactor=tk->intersects(tj);
 
 										//only update it if are making it "more" shadowed.
@@ -371,14 +383,14 @@ int main()
 
 										//this is getting multiplied not matter what, even if it is a poorer estimate.
 										//TODO: must fix
-										//tk->radiation *= ((4.0-lfactor)/4.0);
+										//tk->radiation = ((4.0-tk->shadow)/4.0);
 									}
 							}
 						}
 					}
 				}
 
-				*/
+				
 				
 				arma::vec shadows(tri->size());
 				arma::vec radiation(tri->size());
@@ -397,7 +409,7 @@ int main()
 				engine->put_double_vector("radiation",&radiation);
 				engine->put_double_vector("zprime",&zprime);
 
-			
+				engine->evaluate("shadows=1-shadows");
 
 
 // 				//plot BBR
@@ -413,16 +425,16 @@ int main()
 // 				}
 // 				gfx->hold_off();
 
-				gfx->colorbar();
+				
 
 				//for basin view
 				if(viewpoint=="basin")
 				{
 					
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","radiation(:)");
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","(shadows.*radiation)-radiation");
 					else
-						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","radiation(:)");
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","(shadows.*radiation)-radiation");
 				}
 				else
 				{
@@ -434,14 +446,16 @@ int main()
 	// 				engine->evaluate("axis tight");
 
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","radiation(:)");
+						handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","(shadows.*radiation)-radiation");
 					else
-						handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","radiation(:)");
+						handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","(shadows.*radiation)-radiation");
 					engine->evaluate("axis tight");
 
 				}
 				engine->evaluate("set(gcf,'color','black');set(gca,'visible','off');");
-//				engine->evaluate("colormap(flipud(gray))");
+				gfx->colorbar();
+				engine->evaluate("colormap(flipud(jet))");
+				
 
 				//update time w/o UTC offset.
 				ss.str("");
@@ -457,9 +471,9 @@ int main()
 				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet));
 				fname_time << time;
 
-				gfx->save_to_file(fname_time.str());			
-// 				std::cout << "paused" << std::endl;
-// 				_getch();
+				gfx->save_to_file(fname_time.str());		
+//  				std::cout << "paused" << std::endl;
+//  				_getch();
 			}
 			time = time + dt;
 		}

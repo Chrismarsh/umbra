@@ -80,7 +80,8 @@ public:
 	double shadow;
 	double z_prime;
 
-
+	point center;
+	point rot_center;
 	//this is the index used by matlab's triangulation
 	//it is [1 .. N] where N is number of triangles
 	//it starts at 1 because Matlab's indexing starts at 1

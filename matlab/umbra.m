@@ -29,13 +29,13 @@
 function umbra()
 
 %basin or sun
-viewpoint='basin';
+viewpoint='sun';
 
-load square_nodes_5m.csv
+load square_nodes_2m.csv
 
-x=square_nodes_5m(:,1); %#ok<NODEF>
-y=square_nodes_5m(:,2);
-z=square_nodes_5m(:,3);
+x=square_nodes_2m(:,1); %#ok<NODEF>
+y=square_nodes_2m(:,2);
+z=square_nodes_2m(:,3);
 
 load boundary_nodes.csv
 xb=boundary_nodes(:,1); %#ok<NODEF>
@@ -57,14 +57,14 @@ alt = 0.0;
 % datestr(time,'yyyy/mm/dd HH:MM:SS')
 %utc offset
 UTC_offset = 7;
-tstart = datenum('2010/11/9 16:00:00');
-tend = datenum('2010/11/9 16:30:00');
+tstart = datenum('2011/02/1 09:00:00');
+tend = datenum('2011/02/1 17:00:00');
 tstart=datestr(addtodate(tstart,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 tend=datestr(addtodate(tend,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 
 %correct for time zone
 % UTC=datestr(addtodate(time,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
-step_size = 30;
+step_size = 15;
 step_type = 'minute';
     
 time = tstart;
@@ -130,11 +130,13 @@ shadows=zeros(length(tri.Triangulation),1);
 while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS')
     
     [Az El] = SolarAzEl(time,lat,long,alt);
-
+    
+   
+    
     %convert to rads
     A  = Az * pi/180;
     E  = El * pi/180;
-
+    fprintf('%s\t%f\t%f\n',datestr(addtodate(datenum(time, 'yyyy/mm/dd HH:MM:SS'),-UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS'),pi/2-E,90-El)
     %eqns (6) & (7) in Montero
     z0 = pi-A;
     q0 = pi/2 - E;
@@ -351,14 +353,15 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         refreshdata
     end
     ht= mtit(datestr(addtodate(datenum(time, 'yyyy/mm/dd HH:MM:SS'),-UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS'), 'fontsize',14) ;
-  
+    set(ht.th,'color','white');
+    set(gcf,'color','black');set(gca,'visible','off');
 
 %     F(frame)=getframe(gcf);
-%     export_fig( num2str(frame),'-png');
+     export_fig( num2str(frame),'-png');
     frame=frame+1;
      
     
-    pause
+    
     time = datestr(addtodate(datenum(time,'yyyy/mm/dd HH:MM:SS'),step_size,step_type),'yyyy/mm/dd HH:MM:SS');
  
 

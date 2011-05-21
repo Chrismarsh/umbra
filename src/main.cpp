@@ -40,6 +40,8 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+#undef min
+#undef max
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
@@ -84,12 +86,12 @@ int main()
 		triangulation* tri = new triangulation(engine);
 		tri->create_delaunay(xyz->unsafe_col(0),xyz->unsafe_col(1),xyz->unsafe_col(2));
 
-// 		std::cout << "Finding obs triangle..." << std::endl;
-// 		triangle* obs_tri = tri->find_containing_triangle(626345.8844,5646903.1124);
-// 		if(!obs_tri)
-// 			throw std::exception("Can't find containing triangle");
+ 		std::cout << "Finding obs triangle..." << std::endl;
+ 		triangle* obs_tri = tri->find_containing_triangle(626345.8844,5646903.1124);
+		if(!obs_tri)
+			throw std::exception("Can't find containing triangle");
 
-
+		std::vector<double> obs_values;
 
 		//send 
 		std::cout << "Sending triangulation to matlab..." <<std::endl;
@@ -101,15 +103,27 @@ int main()
 		std::cout << "Creating face normals..." <<std::endl;
 		tri->compute_face_normals();
  
+		std::cout << "Loading radiation data..." << std::endl;
+
+			//15min step
+			//col 0 = total
+			//col 1 = diffuse
+			//col 2 = direct
+ 		engine->evaluate("load feb_1_data.csv");
+ 		arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
+		engine->evaluate("clear feb_1_data");
+ 		int data_counter = 0;
+
+
 		//start up time
-		posix_time::ptime time (gregorian::date(2010,gregorian::Nov,9), 
-							posix_time::hours(9)+posix_time::minutes(00)); //start at 6am
+		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
+							posix_time::hours(8)+posix_time::minutes(30)); //start at 6am
 		
-		posix_time::ptime end_time (gregorian::date(2010,gregorian::Nov,9), 
-			posix_time::hours(17)+posix_time::minutes(30)); 
+		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
+			posix_time::hours(17)+posix_time::minutes(15)); 
 
 		//time step
-		posix_time::time_duration dt = posix_time::minutes(30);
+		posix_time::time_duration dt = posix_time::minutes(15);
 
 		//UTC offset. Don't know how to use datetime's UTC converter yet....
 		posix_time::time_duration UTC_offset = posix_time::hours(7);
@@ -123,6 +137,11 @@ int main()
 		engine->evaluate("ff=figure; set(gcf,'units','normalized','outerposition',[0 0 1 1]);");
 		engine->evaluate("set(ff,'Renderer','OpenGL')");
 
+		//set the colorbar limits
+//  		double min = radiation_data->unsafe_col(0).min();
+//  		double max = radiation_data->unsafe_col(0).max();
+//   		engine->evaluate(std::string("caxis([") + boost::lexical_cast<std::string>(min) + std::string(",") + boost::lexical_cast<std::string>(max) + std::string("])"));
+//		engine->evaluate("caxis([0 700])");
 		std::string viewpoint = "basin";
 		//for as basin
 		if(viewpoint == "basin")
@@ -134,7 +153,11 @@ int main()
 		//title handle
 		double ht = -1.0;
 
-		while (time != end_time)
+		arma::vec cummulative_error(tri->size());
+		cummulative_error.zeros();
+
+
+		while (time <= end_time)
 		{
 			ss.str("");
 			ss << time;
@@ -161,8 +184,7 @@ int main()
 			double	A  = Az * M_PI/180.0;
 			double E  = El * M_PI/180.0;
 
-			arma::vec obs_pt;
-
+			
 			//check negative solar elevation 
 			if(E > 0)
 			{	
@@ -235,7 +257,6 @@ int main()
 					
 					(*tri)(i).set_vertex_values(rot_v0, rot_v1, rot_v2);
 					(*tri)(i).shadow = 0.0;
-					(*tri)(i).radiation = 0.0;
 					(*tri)(i).z_prime = (*tri)(i).rot_center.z; //(rot_v0.z + rot_v1.z + rot_v2.z)/3.0;
 
 					(*tri)(i).compute_azimuth();
@@ -259,10 +280,15 @@ int main()
 					//stop it wrapping around
   					if(angle > 3.14159/2.0)
  						angle = 3.14159/2.0 ;
-		
-					double rad =  1370.0/1.0344 *  cos(angle) * 0.75; //use a "default" transmittance
+						
 
-					(*tri)(i).radiation = rad;
+ 					(*tri)(i).radiation_diff = (*radiation_data)(data_counter,1);//col 1 = diffuse
+					(*tri)(i).radiation_dir  = (*radiation_data)(data_counter,2)/(cos(M_PI/2.0 - E)) * cos(angle);//col 2 = direct 
+																				//correct for the flat plane
+//  					double rad =  1370.0/1.0344 *  cos(angle) * 0.75; //use a "default" transmittance
+// 					(*tri)(i).radiation_dir = rad;
+// 					(*tri)(i).radiation_diff = 0.0;
+					
 				}
 
 				//put the rotated domain to matlab
@@ -298,7 +324,7 @@ int main()
 				for(int i = 0; i< tri->size();i++)
 				{
 					//for each bounding box segment
-					//#pragma omp parallel for
+					#pragma omp parallel for
 					for(int j=0; j < BBR->n_rows;j++)
 					{
 						for(int k = 0; k < BBR->n_cols; k++)
@@ -322,6 +348,7 @@ int main()
 				std::cout << "Generating shadows" << std::endl;
 
 				//for each rect
+				#pragma omp parallel for
 				for(int i = 0; i<BBR->n_rows; i++)
 				{
 					for(int ii = 0; ii<BBR->n_cols;ii++)
@@ -330,31 +357,7 @@ int main()
 						std::sort(BBR->get_rect(i,ii)->triangles.begin(),BBR->get_rect(i,ii)->triangles.end(),
 							[](triangle* a, triangle* b)->bool
 						{
-							return a->z_prime > b->z_prime;
-						
-// 							double a_avg = (a->get_vertex(0).z + a->get_vertex(1).z + a->get_vertex(2).z)/3.0;
-// 							double b_avg = (b->get_vertex(0).z + b->get_vertex(1).z + b->get_vertex(2).z)/3.0;
-// 							return a_avg > b_avg;
-
-// 							if(a->get_vertex(0).z > b->get_vertex(0).z || 
-// 								a->get_vertex(0).z > b->get_vertex(1).z || 
-// 								a->get_vertex(0).z >  b->get_vertex(2).z ||
-// 
-// 								a->get_vertex(1).z > b->get_vertex(0).z || 
-// 								a->get_vertex(1).z > b->get_vertex(1).z || 
-// 								a->get_vertex(1).z >  b->get_vertex(2).z ||
-// 
-// 								a->get_vertex(2).z > b->get_vertex(0).z || 
-// 								a->get_vertex(2).z > b->get_vertex(1).z || 
-// 								a->get_vertex(2).z >  b->get_vertex(2).z )
-// 							{
-// 								return true;
-// 							}
-// 							else
-// 							{
-// 								return false;
-// 							}
-							
+							return a->z_prime > b->z_prime;					
 						});
 
 
@@ -369,9 +372,7 @@ int main()
 							for(int k=j+1; k<num_tri;k++)
 							{
 									triangle* tk = (BBR->get_rect(i,ii)->triangles.at(k));
-// 									double tj_avg = (tj->get_vertex(0).z + tj->get_vertex(1).z + tj->get_vertex(2).z)/3.0;
-// 									double tk_avg = (tk->get_vertex(0).z + tk->get_vertex(1).z + tk->get_vertex(2).z)/3.0;
-// 
+ 
  								    if(	 tj->z_prime > tk->z_prime)
  									{
  										//tj is above tk, and tk is shadded by tj?
@@ -394,22 +395,27 @@ int main()
 				
 				arma::vec shadows(tri->size());
 				arma::vec radiation(tri->size());
-				arma::vec zprime(tri->size());
-
-				//this maybe wrong?????
-				for(size_t i=0;i<tri->size();i++)
+				arma::vec rad_self(tri->size());
+				#pragma omp parallel for
+				for(int i=0;i<tri->size();i++)
 				{
 					shadows(i) = (*tri)(i).shadow;
-					radiation(i) = (*tri)(i).radiation;
-					zprime(i) = (*tri)(i).z_prime;
-			
+					radiation(i) = (*tri)(i).radiation_dir * (1.0-(*tri)(i).shadow) + (*tri)(i).radiation_diff;
+					rad_self(i) = (*tri)(i).radiation_dir + (*tri)(i).radiation_diff;
+
+					cummulative_error(i) = cummulative_error(i) + (rad_self(i) - radiation(i))*900.0;
+					
 				}
 
 				engine->put_double_vector("shadows",&shadows);
 				engine->put_double_vector("radiation",&radiation);
-				engine->put_double_vector("zprime",&zprime);
+				engine->put_double_vector("self",&rad_self);
 
 				engine->evaluate("shadows=1-shadows");
+
+				obs_values.push_back(radiation(obs_tri->triangle_id));
+
+
 
 
 // 				//plot BBR
@@ -432,9 +438,9 @@ int main()
 				{
 					
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","(shadows.*radiation)-radiation");
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows"); //self-radiation
 					else
-						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","(shadows.*radiation)-radiation");
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","shadows");
 				}
 				else
 				{
@@ -446,38 +452,50 @@ int main()
 	// 				engine->evaluate("axis tight");
 
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","(shadows.*radiation)-radiation");
+						handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","shadows");
 					else
-						handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","(shadows.*radiation)-radiation");
+						handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","shadows");
 					engine->evaluate("axis tight");
 
 				}
+				//engine->evaluate("hold on;plot3(626345.8844,5646903.1124,2234.66666,'o','MarkerFaceColor','white','MarkerSize',10)");
 				engine->evaluate("set(gcf,'color','black');set(gca,'visible','off');");
+
+				//engine->evaluate("colormap(flipud(jet))");
 				gfx->colorbar();
-				engine->evaluate("colormap(flipud(jet))");
-				
 
 				//update time w/o UTC offset.
 				ss.str("");
 				ss << time;			
-
-
 		 			
 				ht = gfx->add_title(ss.str(),14,"white");
 				
 				
-				posix_time::time_facet* fname_time_facet =new posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
+				posix_time::time_facet* fname_time_facet = new posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
 				std::stringstream fname_time;
 				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet));
 				fname_time << time;
 
+				gfx->colorbar("off");
 				gfx->save_to_file(fname_time.str());		
 //  				std::cout << "paused" << std::endl;
 //  				_getch();
 			}
 			time = time + dt;
+			data_counter++;
 		}
-	
+		arma::vec values;
+		values.reshape(obs_values.size(),1); //this is stupid and hacky. fix it later
+		for(int i = 0; i< obs_values.size();i++)
+		{
+			values(i) = obs_values[i];
+		}
+
+		values.save("model_values.txt", arma::raw_ascii);
+
+		cummulative_error = cummulative_error / 1000000.0;
+		engine->put_double_vector("error",&cummulative_error);
+
 		engine->stop();
 	}
 	catch(std::exception e)

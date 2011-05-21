@@ -35,7 +35,8 @@ triangle::triangle( point vertex1, point vertex2, point vertex3, size_t cur_rec_
  	m_sub_tri = NULL;
 	set_vertex_values(vertex1,vertex2, vertex3);
 
-	radiation = 0.0;
+	radiation_dir = 0.0;
+	radiation_diff = 0.0;
 	shadow = 0.0;
 	z_prime = 0.0;
 
@@ -50,7 +51,8 @@ triangle::triangle(size_t cur_rec_depth)
 
 	m_cur_rec_depth = cur_rec_depth;
 
-	radiation = 0.0;
+	radiation_dir = 0.0;
+	radiation_diff = 0.0;
 	shadow = 0.0;
 	z_prime = 0.0;
 

@@ -76,9 +76,11 @@ public:
 	arma::vec get_facenormal();
 
 	//information for the physical model
-	double radiation;
+	double radiation_dir;
+	double radiation_diff;
 	double shadow;
 	double z_prime;
+	double area;
 
 	point center;
 	point rot_center;
@@ -86,6 +88,9 @@ public:
 	//it is [1 .. N] where N is number of triangles
 	//it starts at 1 because Matlab's indexing starts at 1
 	size_t global_id[3];
+
+	//we are some i-th triangle.
+	int    triangle_id;
 		
 
 private:

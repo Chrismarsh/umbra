@@ -90,6 +90,8 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 				m_triangles[i]->global_id[0] = v1;
 				m_triangles[i]->global_id[1] = v2;
 				m_triangles[i]->global_id[2] = v3;
+
+				m_triangles[i]->triangle_id = i;
 		}
 	
 		//clean up in matlab

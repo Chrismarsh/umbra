@@ -37,7 +37,7 @@ double graphics::plot_patch( std::string vertices, std::string faces, std::strin
 	std::string command = std::string("patch_handle = patch('Vertices',") + 	vertices + 
 		std::string(",'Faces',") + 	faces +
 		std::string(",'facevertexcdata',") + face_data +
-		std::string(",'facecolor','flat', 'edgecolor','none');");
+		std::string(",'facecolor','flat', 'edgecolor','none');");//[201/256 201/256 201/256]
 	m_engine->evaluate(command.c_str());
 
 	mxArray* handle =  m_engine->get("patch_handle");

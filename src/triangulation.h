@@ -33,7 +33,7 @@
 #include <iostream>
 #include <armadillo>
 
-#include "matlab_engine.h"
+#include <libmaw.h>
 #include "triangle.h"
 
 class triangulation

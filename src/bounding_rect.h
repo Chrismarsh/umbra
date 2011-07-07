@@ -31,7 +31,7 @@
 #include <vector>
 
 #include "triangle.h"
-#include "matlab_engine.h"
+#include <libmaw.h>
 
 // 
 // %OBB computation 

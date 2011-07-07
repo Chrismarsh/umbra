@@ -48,8 +48,11 @@
 
 
 
-#include "matlab_engine.h"
-#include "graphics.h"
+// #include "matlab_engine.h"
+// #include "graphics.h"
+
+#include <libmaw.h>
+
 #include "triangulation.h"
 #include "bounding_rect.h"
 
@@ -91,7 +94,8 @@ int main()
 		if(!obs_tri)
 			throw std::exception("Can't find containing triangle");
 
-		std::vector<double> obs_values;
+		std::vector<double> obs_shortwave_remoteshadow;
+		std::vector<double> obs_shortwave_selfshadow;
 
 		//send 
 		std::cout << "Sending triangulation to matlab..." <<std::endl;
@@ -110,23 +114,40 @@ int main()
 			//col 1 = diffuse
 			//col 2 = direct
  		engine->evaluate("load feb_1_data.csv");
- 		arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
+		//engine->evaluate("load season2011met.csv");
+	//	engine->evaluate("load aprilmayjune.csv");
+     	arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
+	//	arma::mat* radiation_data = engine->get_double_matrix("season2011met");
+	//	arma::mat* radiation_data = engine->get_double_matrix("aprilmayjune");
 		engine->evaluate("clear feb_1_data");
  		int data_counter = 0;
 
 
 		//start up time
+//  		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
+//  							posix_time::hours(19)+posix_time::minutes(45)); //start at 6am
+// 		
+// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
+// 			posix_time::hours(12)+posix_time::minutes(15)); 
+
 		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
-							posix_time::hours(8)+posix_time::minutes(30)); //start at 6am
-		
+			posix_time::hours(8)+posix_time::minutes(15)); 
+
 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
 			posix_time::hours(17)+posix_time::minutes(15)); 
+
+// 		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
+// 			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
+
+// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
+// 			posix_time::hours(12)+posix_time::minutes(15)); 
+
 
 		//time step
 		posix_time::time_duration dt = posix_time::minutes(15);
 
 		//UTC offset. Don't know how to use datetime's UTC converter yet....
-		posix_time::time_duration UTC_offset = posix_time::hours(7);
+		posix_time::time_duration UTC_offset = posix_time::hours(6);
 		
 		//set the format
 		posix_time::time_facet* facet =new posix_time::time_facet("%Y/%m/%d %H:%M:%S");
@@ -318,7 +339,7 @@ int main()
  				std::cout <<"Building BBR..." <<std::endl;
  				//build bounding rect
  				bounding_rect* BBR = new bounding_rect(engine);
- 				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),20,20);
+ 				BBR->make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),50,50);
 			
 				//for each triangle				
 				for(int i = 0; i< tri->size();i++)
@@ -399,23 +420,22 @@ int main()
 				#pragma omp parallel for
 				for(int i=0;i<tri->size();i++)
 				{
-					shadows(i) = (*tri)(i).shadow;
+					shadows(i)   = (*tri)(i).shadow;
 					radiation(i) = (*tri)(i).radiation_dir * (1.0-(*tri)(i).shadow) + (*tri)(i).radiation_diff;
-					rad_self(i) = (*tri)(i).radiation_dir + (*tri)(i).radiation_diff;
+					rad_self(i)  = (*tri)(i).radiation_dir + (*tri)(i).radiation_diff;
 
 					cummulative_error(i) = cummulative_error(i) + (rad_self(i) - radiation(i))*900.0;
-					
 				}
 
-				engine->put_double_vector("shadows",&shadows);
-				engine->put_double_vector("radiation",&radiation);
-				engine->put_double_vector("self",&rad_self);
+// 				engine->put_double_vector("shadows",&shadows);
+// 				engine->put_double_vector("radiation",&radiation);
+// 				engine->put_double_vector("self",&rad_self);
+ 				engine->put_double_vector("cummError",&cummulative_error);
+// 
+// 				engine->evaluate("shadows=1-shadows");
 
-				engine->evaluate("shadows=1-shadows");
-
-				obs_values.push_back(radiation(obs_tri->triangle_id));
-
-
+				obs_shortwave_remoteshadow.push_back(radiation(obs_tri->triangle_id));
+				obs_shortwave_selfshadow.push_back(rad_self(obs_tri->triangle_id));
 
 
 // 				//plot BBR
@@ -438,9 +458,9 @@ int main()
 				{
 					
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows"); //self-radiation
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","cummError"); //self-radiation
 					else
-						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","shadows");
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","cummError");
 				}
 				else
 				{
@@ -458,6 +478,7 @@ int main()
 					engine->evaluate("axis tight");
 
 				}
+
 				//engine->evaluate("hold on;plot3(626345.8844,5646903.1124,2234.66666,'o','MarkerFaceColor','white','MarkerSize',10)");
 				engine->evaluate("set(gcf,'color','black');set(gca,'visible','off');");
 
@@ -477,21 +498,34 @@ int main()
 				fname_time << time;
 
 				gfx->colorbar("off");
+
+				
 				gfx->save_to_file(fname_time.str());		
-//  				std::cout << "paused" << std::endl;
-//  				_getch();
+  				std::cout << "paused" << std::endl;
+ 				_getch();
 			}
+			else
+			{
+				//sun below horizon?
+				obs_shortwave_remoteshadow.push_back(0);
+				obs_shortwave_selfshadow.push_back(0);
+			}
+			
 			time = time + dt;
 			data_counter++;
 		}
-		arma::vec values;
-		values.reshape(obs_values.size(),1); //this is stupid and hacky. fix it later
-		for(int i = 0; i< obs_values.size();i++)
+		arma::vec remoteshadow;
+		arma::vec selfshadow;
+		remoteshadow.reshape(obs_shortwave_remoteshadow.size(),1); //this is stupid and hacky. fix it later
+		selfshadow.reshape(obs_shortwave_selfshadow.size(),1); //this is stupid and hacky. fix it later
+		for(int i = 0; i< obs_shortwave_remoteshadow.size();i++)
 		{
-			values(i) = obs_values[i];
+			remoteshadow(i) = obs_shortwave_remoteshadow[i];
+			selfshadow(i) = obs_shortwave_selfshadow[i];
 		}
 
-		values.save("model_values.txt", arma::raw_ascii);
+		remoteshadow.save("remoteshadow_values.txt", arma::raw_ascii);
+		selfshadow.save("selfshadow_values.txt", arma::raw_ascii);
 
 		cummulative_error = cummulative_error / 1000000.0;
 		engine->put_double_vector("error",&cummulative_error);

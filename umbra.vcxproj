@@ -20,16 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bounding_rect.cpp" />
-    <ClCompile Include="src\graphics.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\matlab_engine.cpp" />
     <ClCompile Include="src\triangle.cpp" />
     <ClCompile Include="src\triangulation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bounding_rect.h" />
-    <ClInclude Include="src\graphics.h" />
-    <ClInclude Include="src\matlab_engine.h" />
     <ClInclude Include="src\point.h" />
     <ClInclude Include="src\triangle.h" />
     <ClInclude Include="src\triangulation.h" />
@@ -92,8 +88,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\libs\libmaw;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\libs\libmaw\lib;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
     <ExecutablePath>C:\Program Files\MATLAB\R2011a\bin\win64;$(ExecutablePath)</ExecutablePath>
     <TargetName>$(ProjectName)_d</TargetName>
     <OutDir>$(SolutionDir)\bin\$(Platform)-$(Configuration)\</OutDir>
@@ -108,8 +104,8 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)\bin\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(Platform)-$(Configuration)\</IntDir>
-    <IncludePath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\libs\libmaw;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\libs\libmaw\lib;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -138,7 +134,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mkl_intel_lp64.lib;mkl_sequential.lib;mkl_core.lib;libmx.lib;libmat.lib;libeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mkl_intel_lp64.lib;mkl_sequential.lib;mkl_core.lib;libmx.lib;libmat.lib;libeng.lib;X64_libmaw_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -178,7 +174,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>libmx.lib;libmat.lib;libeng.lib;mkl_intel_lp64.lib;mkl_sequential.lib;mkl_core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libmx.lib;libmat.lib;libeng.lib;mkl_intel_lp64.lib;mkl_sequential.lib;mkl_core.lib;X64_libmaw.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

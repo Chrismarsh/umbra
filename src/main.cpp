@@ -32,7 +32,7 @@
 #include <vector>
 #include <sstream>
 #include <cmath>
-#include <conio.h>
+/*#include <conio.h>*/
 //#include <omp.h>
 #include <armadillo>
 
@@ -502,7 +502,7 @@ int main()
 				
 				gfx->save_to_file(fname_time.str());		
   				std::cout << "paused" << std::endl;
- 				_getch();
+ 				std::cin.get();
 			}
 			else
 			{
@@ -538,7 +538,7 @@ int main()
 
 	}
 	std::cout << "Finished" << std::endl;
-	_getch();
+	std::cin.get();
 	
 	return 0;
 }

@@ -36,7 +36,7 @@
 //#include <omp.h>
 #include <armadillo>
 
-#include <windows.h>
+/*#include <windows.h>*/
 
 #define _USE_MATH_DEFINES
 #include <math.h>

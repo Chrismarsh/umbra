@@ -143,8 +143,8 @@ int main()
 		ss.imbue(std::locale(ss.getloc(),facet));
 		
 		//setup the plot
-		engine->evaluate("ff=figure; set(gcf,'units','normalized','outerposition',[0 0 1 1]);");
-		engine->evaluate("set(ff,'Renderer','OpenGL')");
+// 		engine->evaluate("ff=figure; set(gcf,'units','normalized','outerposition',[0 0 1 1]);");
+// 		engine->evaluate("set(ff,'Renderer','OpenGL')");
 
 		//set the colorbar limits
 //  		double min = radiation_data->unsafe_col(0).min();
@@ -153,8 +153,8 @@ int main()
 //		engine->evaluate("caxis([0 700])");
 		std::string viewpoint = "basin";
 		//for as basin
-		if(viewpoint == "basin")
-			engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
+// 		if(viewpoint == "basin")
+// 			engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
 		
 
 		//plot handle

@@ -29,12 +29,12 @@
 
 #include "triangulation.h"
 
-void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
+void triangulation::create_delaunay( arma::vec* x, arma::vec* y, arma::vec* z)
 {
 	if(m_engine)
 	{
-	
-		int num_nodes = x.n_rows;
+
+		int num_nodes = x->n_rows;
 
 		mxArray* xy = mxCreateDoubleMatrix(num_nodes,3, mxREAL);
 		double* ptr = mxGetPr(xy);
@@ -43,8 +43,8 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 		for (int row=0;row<num_nodes;row++)
 		{
 			//matlab is col major storage	
-			ptr[row+0*num_nodes] = x(row);
-			ptr[row+1*num_nodes] = y(row);
+			ptr[row+0*num_nodes] = (*x)(row);
+			ptr[row+1*num_nodes] = (*y)(row);
 		}
 		m_engine->put("xy",xy);
 		m_engine->evaluate("tri=DelaunayTri(xy(:,1),xy(:,2))");
@@ -74,17 +74,17 @@ void triangulation::create_delaunay( arma::vec& x, arma::vec& y, arma::vec& z)
 				int v3 = int(t[i+2*m_size]); //v3 -= 1;
 
 				point vertex1,vertex2,vertex3;
-				vertex1.x = x(v1-1);
-				vertex1.y = y(v1-1);
-				vertex1.z = z(v1-1);
+				vertex1.x = (*x)(v1-1);
+				vertex1.y = (*y)(v1-1);
+				vertex1.z = (*z)(v1-1);
 
-				vertex2.x = x(v2-1);
-				vertex2.y = y(v2-1);
-				vertex2.z = z(v2-1);
+				vertex2.x = (*x)(v2-1);
+				vertex2.y = (*y)(v2-1);
+				vertex2.z = (*z)(v2-1);
 
-				vertex3.x = x(v3-1);
-				vertex3.y = y(v3-1);
-				vertex3.z = z(v2-1);
+				vertex3.x = (*x)(v3-1);
+				vertex3.y = (*y)(v3-1);
+				vertex3.z = (*z)(v2-1);
 
 				m_triangles.push_back(new triangle(vertex1,vertex2,vertex3,0));
 				m_triangles[i]->global_id[0] = v1;
@@ -128,7 +128,7 @@ triangle& triangulation::operator()(size_t t)
 void triangulation::set_vertex_data( arma::mat& data )
 {
 	if(data.n_cols != 3)
-		throw std::exception("Wrong number of columns");
+		throw std::runtime_error("Wrong number of columns");
 
 	//loop over all triangles
 

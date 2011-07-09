@@ -44,7 +44,7 @@ public:
 	~triangulation();
 
 	//Create a delaunay triangulation
-	void create_delaunay(arma::vec& x, arma::vec& y, arma::vec& z);
+	void create_delaunay(arma::vec* x, arma::vec* y, arma::vec* z);
 
 	//return the size of the triangluation
 	size_t size();

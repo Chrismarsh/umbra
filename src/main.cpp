@@ -32,25 +32,13 @@
 #include <vector>
 #include <sstream>
 #include <cmath>
-/*#include <conio.h>*/
-//#include <omp.h>
 #include <armadillo>
-
-/*#include <windows.h>*/
-
 #define _USE_MATH_DEFINES
 #include <math.h>
 #undef min
 #undef max
-
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
-
-
-
-// #include "matlab_engine.h"
-// #include "graphics.h"
-
 #include <libmaw.h>
 
 #include "triangulation.h"
@@ -80,19 +68,19 @@ int main()
 		xyz = engine->get_double_matrix("square_nodes_2m");
 
 		if(!xyz)
-			throw std::exception(engine->get_last_error().c_str());
+			throw std::runtime_error(engine->get_last_error().c_str());
 
 		engine->evaluate("clear square_nodes_2m");
 
 		//perform the triangulation
 		std::cout << "Creating triangulation..." <<std::endl;
 		triangulation* tri = new triangulation(engine);
-		tri->create_delaunay(xyz->unsafe_col(0),xyz->unsafe_col(1),xyz->unsafe_col(2));
+		tri->create_delaunay(&(xyz->unsafe_col(0)),&(xyz->unsafe_col(1)),&(xyz->unsafe_col(2)));
 
  		std::cout << "Finding obs triangle..." << std::endl;
  		triangle* obs_tri = tri->find_containing_triangle(626345.8844,5646903.1124);
 		if(!obs_tri)
-			throw std::exception("Can't find containing triangle");
+			throw std::runtime_error("Can't find containing triangle");
 
 		std::vector<double> obs_shortwave_remoteshadow;
 		std::vector<double> obs_shortwave_selfshadow;
@@ -113,28 +101,28 @@ int main()
 			//col 0 = total
 			//col 1 = diffuse
 			//col 2 = direct
- 		engine->evaluate("load feb_1_data.csv");
-		//engine->evaluate("load season2011met.csv");
+ 	//	engine->evaluate("load feb_1_data.csv");
+		engine->evaluate("load season2011met.csv");
 	//	engine->evaluate("load aprilmayjune.csv");
-     	arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
-	//	arma::mat* radiation_data = engine->get_double_matrix("season2011met");
+     	//arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
+		arma::mat* radiation_data = engine->get_double_matrix("season2011met");
 	//	arma::mat* radiation_data = engine->get_double_matrix("aprilmayjune");
-		engine->evaluate("clear feb_1_data");
+		engine->evaluate("clear season2011met");
  		int data_counter = 0;
 
 
 		//start up time
-//  		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
-//  							posix_time::hours(19)+posix_time::minutes(45)); //start at 6am
-// 		
-// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
-// 			posix_time::hours(12)+posix_time::minutes(15)); 
+ 		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
+ 							posix_time::hours(19)+posix_time::minutes(45)); //start at 6am
+		
+		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
+			posix_time::hours(12)+posix_time::minutes(15)); 
 
-		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
-			posix_time::hours(8)+posix_time::minutes(15)); 
-
-		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
-			posix_time::hours(17)+posix_time::minutes(15)); 
+// 		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
+// 			posix_time::hours(8)+posix_time::minutes(15)); 
+// 
+// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
+// 			posix_time::hours(17)+posix_time::minutes(15)); 
 
 // 		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
 // 			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
@@ -480,29 +468,29 @@ int main()
 				}
 
 				//engine->evaluate("hold on;plot3(626345.8844,5646903.1124,2234.66666,'o','MarkerFaceColor','white','MarkerSize',10)");
-				engine->evaluate("set(gcf,'color','black');set(gca,'visible','off');");
-
-				//engine->evaluate("colormap(flipud(jet))");
-				gfx->colorbar();
-
-				//update time w/o UTC offset.
-				ss.str("");
-				ss << time;			
-		 			
-				ht = gfx->add_title(ss.str(),14,"white");
+// 				engine->evaluate("set(gcf,'color','black');set(gca,'visible','off');");
+// 
+// 				//engine->evaluate("colormap(flipud(jet))");
+// 				gfx->colorbar();
+// 
+// 				//update time w/o UTC offset.
+// 				ss.str("");
+// 				ss << time;			
+// 		 			
+// 				ht = gfx->add_title(ss.str(),14,"white");
 				
 				
-				posix_time::time_facet* fname_time_facet = new posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
-				std::stringstream fname_time;
-				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet));
-				fname_time << time;
-
-				gfx->colorbar("off");
-
-				
-				gfx->save_to_file(fname_time.str());		
-  				std::cout << "paused" << std::endl;
- 				std::cin.get();
+// 				posix_time::time_facet* fname_time_facet = new posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
+// 				std::stringstream fname_time;
+// 				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet));
+// 				fname_time << time;
+// 
+// 				gfx->colorbar("off");
+// 
+// 				
+// 				gfx->save_to_file(fname_time.str());		
+//   				std::cout << "paused" << std::endl;
+//  				std::cin.get();
 			}
 			else
 			{
@@ -532,13 +520,13 @@ int main()
 
 		engine->stop();
 	}
-	catch(std::exception e)
+	catch(std::runtime_error e)
 	{
 		std::cout << e.what() << std::endl;																						
 
 	}
-	std::cout << "Finished" << std::endl;
-	std::cin.get();
+ 	std::cout << "Finished" << std::endl;
+// 	std::cin.get();
 	
 	return 0;
 }

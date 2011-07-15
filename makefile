@@ -33,4 +33,4 @@ triangulation.o:
 	
 	
 clean:
-	rm -rf *o libmaw.a
+	rm -rf *o umbra

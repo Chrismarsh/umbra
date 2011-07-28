@@ -29,7 +29,7 @@
 function umbra()
 
 %basin or sun
-viewpoint='sun';
+viewpoint='basin';
 
 load square_nodes_2m.csv
 
@@ -57,8 +57,8 @@ alt = 0.0;
 % datestr(time,'yyyy/mm/dd HH:MM:SS')
 %utc offset
 UTC_offset = 7;
-tstart = datenum('2011/02/1 09:00:00');
-tend = datenum('2011/02/1 17:00:00');
+tstart = datenum('2011/02/1 13:30:00');
+tend = datenum('2011/02/1 14:00:00');
 tstart=datestr(addtodate(tstart,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 tend=datestr(addtodate(tend,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 
@@ -321,6 +321,8 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
 %     pause
         
 %----------------------------------------
+     proj_z = (proj_z)/max(abs(proj_z)) +1 ;
+    
     if  exist('p','var')==0
         if strcmp(viewpoint,'basin')
             p = patch( ...
@@ -352,13 +354,25 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         end
         refreshdata
     end
-    ht= mtit(datestr(addtodate(datenum(time, 'yyyy/mm/dd HH:MM:SS'),-UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS'), 'fontsize',14) ;
-    set(ht.th,'color','white');
-    set(gcf,'color','black');set(gca,'visible','off');
+%     ht= mtit(datestr(addtodate(datenum(time, 'yyyy/mm/dd HH:MM:SS'),-UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS'), 'fontsize',14) ;
+%     set(ht.th,'color','white');
+   
+    if strcmp(viewpoint,'basin')
+       set(get(gca,'YLabel'),'string','Northing (m)','Fontsize',20)
+        set(get(gca,'XLabel'),'string','Easting (m)','Fontsize',20)
+        set(get(gca,'ZLabel'),'string','Elevation (m)','Fontsize',20)
+        set(gca,'Fontsize',12,'FontWeight','bold') 
+        cb=colorbar%('location','southoutside')
+        set(cb,'fontsize',16);
+        set(gcf,'color','white');
+    else
+        set(gca,'visible','off');
+    end
 
+    
 %     F(frame)=getframe(gcf);
-     export_fig( num2str(frame),'-png');
-    frame=frame+1;
+%      export_fig( num2str(frame),'-png');
+%     frame=frame+1;
      
     
     

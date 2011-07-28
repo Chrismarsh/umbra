@@ -104,7 +104,7 @@ size_t triangulation::size()
 	return m_size;
 }
 
-triangulation::triangulation( matlab_engine* engine )
+triangulation::triangulation( maw::matlab_engine* engine )
 {
 	m_engine = engine;
 	m_size = 0;

@@ -39,6 +39,7 @@
 #undef max
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
+
 #include <libmaw.h>
 
 #include "triangulation.h"
@@ -49,11 +50,11 @@ using namespace boost;
 int main()
 
 {
-	try
-	{
+ 	try
+ 	{
 
-		matlab_engine* engine = new matlab_engine();
-		graphics* gfx = new graphics(engine);
+		maw::matlab_engine* engine = new maw::matlab_engine();
+		maw::graphics* gfx = new maw::graphics(engine);
 
 
 		engine->start();
@@ -63,14 +64,24 @@ int main()
 
 		//loads the data via matlab
 		std::cout << "Loading data" << std::endl;
-		engine->evaluate("load square_nodes_2m.csv");
+		engine->evaluate("load tin_2mtol_1mdem_nodes.csv");
 		arma::mat* xyz = NULL;
-		xyz = engine->get_double_matrix("square_nodes_2m");
+		xyz = engine->get_double_matrix("tin_2mtol_1mdem_nodes");
+
+		//load skyview data
+		std::cout << "Loading skyview data" << std::endl;
+		engine->evaluate("load tin_2mtol_1mdem_skyview.csv");
+		arma::mat* skyview = NULL;
+		skyview = engine->get_double_matrix("tin_2mtol_1mdem_skyview");
 
 		if(!xyz)
 			throw std::runtime_error(engine->get_last_error().c_str());
 
-		engine->evaluate("clear square_nodes_2m");
+		if(!skyview)
+			throw std::runtime_error(engine->get_last_error().c_str());
+
+		engine->evaluate("clear tin_2mtol_1mdem_nodes");
+//		engine->evaluate("clear tin_2mtol_1mdem_skyview");
 
 		//perform the triangulation
 		std::cout << "Creating triangulation..." <<std::endl;
@@ -97,19 +108,17 @@ int main()
  
 		std::cout << "Loading radiation data..." << std::endl;
 
-			//15min step
-			//col 0 = total
-			//col 1 = diffuse
-			//col 2 = direct
+
  	//	engine->evaluate("load feb_1_data.csv");
 		engine->evaluate("load season2011met.csv");
 	//	engine->evaluate("load aprilmayjune.csv");
-     	//arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
+    // 	arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
 		arma::mat* radiation_data = engine->get_double_matrix("season2011met");
 	//	arma::mat* radiation_data = engine->get_double_matrix("aprilmayjune");
 		engine->evaluate("clear season2011met");
  		int data_counter = 0;
 
+		
 
 		//start up time
  		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
@@ -118,15 +127,17 @@ int main()
 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
 			posix_time::hours(12)+posix_time::minutes(15)); 
 
+		posix_time::ptime chkpt = time; //start with our first time 
+
 // 		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
-// 			posix_time::hours(8)+posix_time::minutes(15)); 
+// 			posix_time::hours(13)+posix_time::minutes(30)); 
 // 
 // 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
-// 			posix_time::hours(17)+posix_time::minutes(15)); 
+// 			posix_time::hours(14)+posix_time::minutes(0)); 
 
 // 		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
 // 			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
-
+// 
 // 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
 // 			posix_time::hours(12)+posix_time::minutes(15)); 
 
@@ -135,10 +146,10 @@ int main()
 		posix_time::time_duration dt = posix_time::minutes(15);
 
 		//UTC offset. Don't know how to use datetime's UTC converter yet....
-		posix_time::time_duration UTC_offset = posix_time::hours(6);
+		posix_time::time_duration UTC_offset = posix_time::hours(7);
 		
 		//set the format
-		posix_time::time_facet* facet =new posix_time::time_facet("%Y/%m/%d %H:%M:%S");
+		posix_time::time_facet* facet = new posix_time::time_facet("%Y/%m/%d %H:%M:%S");
 		std::stringstream ss;
 		ss.imbue(std::locale(ss.getloc(),facet));
 		
@@ -153,8 +164,8 @@ int main()
 //		engine->evaluate("caxis([0 700])");
 		std::string viewpoint = "basin";
 		//for as basin
-// 		if(viewpoint == "basin")
-// 			engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
+ 		if(viewpoint == "basin")
+ 			engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
 		
 
 		//plot handle
@@ -292,6 +303,14 @@ int main()
 						
 
  					(*tri)(i).radiation_diff = (*radiation_data)(data_counter,1);//col 1 = diffuse
+
+					int i1 = (*tri)(i).global_id[0]-1;
+					int i2 = (*tri)(i).global_id[1]-1;
+					int i3 = (*tri)(i).global_id[2]-1;
+					double avg_skyview = ( (*skyview)(i1) + (*skyview)(i2) + (*skyview)(i3) ) /3.0;
+					(*tri)(i).radiation_diff *= avg_skyview; //correct for skyview factor
+					
+
 					(*tri)(i).radiation_dir  = (*radiation_data)(data_counter,2)/(cos(M_PI/2.0 - E)) * cos(angle);//col 2 = direct 
 																				//correct for the flat plane
 //  					double rad =  1370.0/1.0344 *  cos(angle) * 0.75; //use a "default" transmittance
@@ -405,6 +424,7 @@ int main()
 				arma::vec shadows(tri->size());
 				arma::vec radiation(tri->size());
 				arma::vec rad_self(tri->size());
+
 				#pragma omp parallel for
 				for(int i=0;i<tri->size();i++)
 				{
@@ -415,7 +435,7 @@ int main()
 					cummulative_error(i) = cummulative_error(i) + (rad_self(i) - radiation(i))*900.0;
 				}
 
-// 				engine->put_double_vector("shadows",&shadows);
+ 				engine->put_double_vector("shadows",&shadows);
 // 				engine->put_double_vector("radiation",&radiation);
 // 				engine->put_double_vector("self",&rad_self);
  				engine->put_double_vector("cummError",&cummulative_error);
@@ -446,9 +466,9 @@ int main()
 				{
 					
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","cummError"); //self-radiation
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows"); //self-radiation cummError
 					else
-						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","cummError");
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","shadows");
 				}
 				else
 				{
@@ -498,6 +518,34 @@ int main()
 				obs_shortwave_remoteshadow.push_back(0);
 				obs_shortwave_selfshadow.push_back(0);
 			}
+
+			//checkpoint code
+			boost::posix_time::time_duration td = boost::posix_time::hours(168); //7 days
+			if( (time - chkpt) >=td)
+			{
+				arma::vec chkpt_remoteshadow;
+				arma::vec chkpt_selfshadow;
+				chkpt_remoteshadow.reshape(obs_shortwave_remoteshadow.size(),1); //this is stupid and hacky. fix it later
+				chkpt_selfshadow.reshape(obs_shortwave_selfshadow.size(),1); //this is stupid and hacky. fix it later
+				for(int i = 0; i< obs_shortwave_remoteshadow.size();i++)
+				{
+					chkpt_remoteshadow(i) = obs_shortwave_remoteshadow[i];
+					chkpt_selfshadow(i) = obs_shortwave_selfshadow[i];
+				}
+
+				posix_time::time_facet* fname_time_facet = new posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
+				std::stringstream fname_time;
+				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet));
+				fname_time << time;
+
+				chkpt_remoteshadow.save(fname_time.str() + std::string("_remoteshadow_values.txt"), arma::raw_ascii);
+				chkpt_selfshadow.save(fname_time.str() + std::string("_selfshadow_values.txt"), arma::raw_ascii);
+
+				std::cout << "Checkpointed at " << fname_time << std::endl;
+
+				chkpt = time;
+			}
+			//end chkpt
 			
 			time = time + dt;
 			data_counter++;
@@ -517,7 +565,7 @@ int main()
 
 		cummulative_error = cummulative_error / 1000000.0;
 		engine->put_double_vector("error",&cummulative_error);
-
+		engine->evaluate("save season_2m_error_mat");
 		engine->stop();
 	}
 	catch(std::runtime_error e)

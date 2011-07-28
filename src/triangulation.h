@@ -40,7 +40,7 @@ class triangulation
 {
 
 public:
-	triangulation(matlab_engine* engine);
+	triangulation(maw::matlab_engine* engine);
 	~triangulation();
 
 	//Create a delaunay triangulation
@@ -72,7 +72,7 @@ private:
 	size_t m_size;  //number of triangulations
 
 	//ptr to the matlab engine
-	matlab_engine* m_engine;
+	maw::matlab_engine* m_engine;
 
 };
 

@@ -69,7 +69,7 @@ public:
 class bounding_rect
 {
 public:
-	bounding_rect(matlab_engine* m_engine);
+	bounding_rect(maw::matlab_engine* m_engine);
 	~bounding_rect();
 	void make(const arma::vec* x, const arma::vec* y, int n_rows, int n_cols);
 	rect* bounding_rect::get_rect( int i, int j );
@@ -80,7 +80,7 @@ public:
 private:
 	//std::vector<rect*> m_rectangles;
 	std::vector<std::vector<rect*> > m_grid;
-	matlab_engine* m_engine;
+	maw::matlab_engine* m_engine;
 };
 
 

@@ -41,8 +41,11 @@ void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_rows, int
 	arma::vec midpoint_bottom_y(n_segments);
 	arma::vec midpoint_top_y(n_segments);
 
+	m_engine->put_double_vector("BBR_x",x);
+	m_engine->put_double_vector("BBR_y",y);
+
 	
-	m_engine->evaluate("[bbx,bby,~,~]=minboundrect(mxRot(:,1),mxRot(:,2));");
+	m_engine->evaluate("[bbx,bby,~,~]=minboundrect(BBR_x(:),BBR_y(:));");
 
 
 	arma::vec* bbx = (m_engine->get_double_vector("bbx"));

@@ -34,7 +34,7 @@
 #include <libmaw.h>
 
 // 
-// %OBB computation 
+// 
 // 	     -----------------------
 // 
 // 	         4       top      3

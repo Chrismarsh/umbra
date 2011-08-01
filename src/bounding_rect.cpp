@@ -51,7 +51,7 @@ void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_rows, int
 	arma::vec* bbx = (m_engine->get_double_vector("bbx"));
 	arma::vec* bby = (m_engine->get_double_vector("bby"));
 
-	m_engine->evaluate("clear bbx bby");
+	m_engine->evaluate("clear bbx bby BBR_x BBR_y");
 
 	
 

@@ -81,7 +81,7 @@ int main()
 			throw std::runtime_error(engine->get_last_error().c_str());
 
 		engine->evaluate("clear tin_2mtol_1mdem_nodes");
-//		engine->evaluate("clear tin_2mtol_1mdem_skyview");
+		engine->evaluate("clear tin_2mtol_1mdem_skyview");
 
 		//perform the triangulation
 		std::cout << "Creating triangulation..." <<std::endl;
@@ -109,38 +109,37 @@ int main()
 		std::cout << "Loading radiation data..." << std::endl;
 
 
- 	//	engine->evaluate("load feb_1_data.csv");
-		engine->evaluate("load season2011met.csv");
+ 		engine->evaluate("load feb_1_data.csv");
+	//	engine->evaluate("load season2011met.csv");
 	//	engine->evaluate("load aprilmayjune.csv");
-    // 	arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
-		arma::mat* radiation_data = engine->get_double_matrix("season2011met");
+    	arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
+	//	arma::mat* radiation_data = engine->get_double_matrix("season2011met");
 	//	arma::mat* radiation_data = engine->get_double_matrix("aprilmayjune");
-		engine->evaluate("clear season2011met");
+		engine->evaluate("clear feb_1_data");
  		int data_counter = 0;
 
 		
 
 		//start up time
- 		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
- 							posix_time::hours(19)+posix_time::minutes(45)); //start at 6am
-		
-		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
-			posix_time::hours(12)+posix_time::minutes(15)); 
-
-		posix_time::ptime chkpt = time; //start with our first time 
-
-// 		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
-// 			posix_time::hours(13)+posix_time::minutes(30)); 
-// 
-// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
-// 			posix_time::hours(14)+posix_time::minutes(0)); 
-
-// 		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
-// 			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
-// 
+//  		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
+//  							posix_time::hours(19)+posix_time::minutes(45)); //start at 6am
 // 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
 // 			posix_time::hours(12)+posix_time::minutes(15)); 
 
+	
+
+		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
+			posix_time::hours(13)+posix_time::minutes(30)); 
+		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
+			posix_time::hours(14)+posix_time::minutes(0)); 
+
+// 		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
+// 			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
+// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
+// 			posix_time::hours(12)+posix_time::minutes(15)); 
+		
+		
+		posix_time::ptime chkpt = time; //start with our first time 
 
 		//time step
 		posix_time::time_duration dt = posix_time::minutes(15);
@@ -542,6 +541,8 @@ int main()
 				chkpt_selfshadow.save(fname_time.str() + std::string("_selfshadow_values.txt"), arma::raw_ascii);
 
 				std::cout << "Checkpointed at " << fname_time << std::endl;
+
+				delete fname_time_facet;
 
 				chkpt = time;
 			}

@@ -29,7 +29,7 @@
 function umbra()
 
 %basin or sun
-viewpoint='basin';
+viewpoint='sun';
 
 load square_nodes_2m.csv
 
@@ -113,6 +113,8 @@ end
 shadows=zeros(length(tri.Triangulation),1);
 
 
+ warning('off','MATLAB:convhull:DeprecatedQhullOptionsConvhull')
+ [rotmat,cornerpoints,volume,surface,edgelength] = minboundbox(x,y,z);
 
 %build the partial matrix
 % for i=1:max(tri.size)
@@ -151,7 +153,11 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         proj_y(i) = coord(2);
         proj_z(i) = coord(3);
     end
-        
+    
+    for i=1:max(size(cornerpoints))
+        temp = [cornerpoints(i,1); cornerpoints(i,2); cornerpoints(i,3)];
+       BB(i,:) = K*temp;
+    end
 %      for i=1:tri.size
 %         Triangle_set{i}.x1=proj_x(tri.Triangulation(i,1));
 %         Triangle_set{i}.y1=proj_y(tri.Triangulation(i,1));

@@ -29,7 +29,7 @@
 function umbra()
 
 %basin or sun
-viewpoint='sun';
+viewpoint='basin';
 
 load square_nodes_2m.csv
 
@@ -57,8 +57,8 @@ alt = 0.0;
 % datestr(time,'yyyy/mm/dd HH:MM:SS')
 %utc offset
 UTC_offset = 7;
-tstart = datenum('2011/02/1 13:30:00');
-tend = datenum('2011/02/1 14:00:00');
+tstart = datenum('2011/02/1 8:30:00');
+tend = datenum('2011/02/1 19:00:00');
 tstart=datestr(addtodate(tstart,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 tend=datestr(addtodate(tend,UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS');
 
@@ -113,9 +113,6 @@ end
 shadows=zeros(length(tri.Triangulation),1);
 
 
- warning('off','MATLAB:convhull:DeprecatedQhullOptionsConvhull')
- [rotmat,cornerpoints,volume,surface,edgelength] = minboundbox(x,y,z);
-
 %build the partial matrix
 % for i=1:max(tri.size)
 %     Triangulation(i,1)=x(tri.Triangulation);
@@ -129,6 +126,9 @@ shadows=zeros(length(tri.Triangulation),1);
 % %     
 % end
     
+[NormalVx NormalVy NormalVz PosVx PosVy PosVz]=computeNormalVectorTriangulation([x y z],tri,'center-cells');
+
+
 while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS')
     
     [Az El] = SolarAzEl(time,lat,long,alt);
@@ -154,156 +154,19 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         proj_z(i) = coord(3);
     end
     
-    for i=1:max(size(cornerpoints))
-        temp = [cornerpoints(i,1); cornerpoints(i,2); cornerpoints(i,3)];
-       BB(i,:) = K*temp;
-    end
-%      for i=1:tri.size
-%         Triangle_set{i}.x1=proj_x(tri.Triangulation(i,1));
-%         Triangle_set{i}.y1=proj_y(tri.Triangulation(i,1));
-%         Triangle_set{i}.z1=proj_z(tri.Triangulation(i,1));
-%         
-%         Triangle_set{i}.x2=proj_x(tri.Triangulation(i,2));
-%         Triangle_set{i}.y2=proj_y(tri.Triangulation(i,2));
-%         Triangle_set{i}.z2=proj_z(tri.Triangulation(i,2));
-%         
-%         Triangle_set{i}.x3=proj_x(tri.Triangulation(i,3));
-%         Triangle_set{i}.y3=proj_y(tri.Triangulation(i,3));
-%         Triangle_set{i}.z3=proj_z(tri.Triangulation(i,3));
-%          
-%         Triangle_set{i}.centre = tri_center([Triangle_set{i}.x1 Triangle_set{i}.y1 Triangle_set{i}.z1],...
-%                                                 [Triangle_set{i}.x2 Triangle_set{i}.y2 Triangle_set{i}.z2],...
-%                                                 [Triangle_set{i}.x3 Triangle_set{i}.y3 Triangle_set{i}.z3],...
-%                                                 'circumcenter');
-% 
-%         fprintf('done...%f\n',i/max(tri.size)*100)
-%        
-%      end
- 
-    %OBB computation 
-%     -----------------------
-    
-%         4       top      3
-%         +--------+--------+
-%         |        |        |
-%         |        |        |
-%   left  +--------+--------+    right
-%         |        |        |
-%         |        |        |
-%         +-----------------+
-%         1     bottom      2
-% +y
-% ^
-% |
-% +-> +x
+    cosi = zeros(max(size(tri)),1);
 
-    %only need 1:4 of these 5x1 vectors bbx, bby
-%     [bbx,bby,~,~]=minboundrect(proj_x,proj_y);
-% 
-%     m=(bby(2)-bby(1))/(bbx(2)-bbx(1));
-%     step=(bbx(3)-bbx(4))/sg_nx;
-%     for i=1:sg_nx
-%         xpos.bottom=bbx(1)+step*i;
-%         xpos.top=bbx(4)+step*i;
-%         
-%         x_mp.bottom(i).x=xpos.bottom;
-%         x_mp.bottom(i).y=m*(xpos.bottom-bbx(1))+bby(1); %2pt line eqn
-%       
-%         x_mp.top(i).x=xpos.top;
-%         x_mp.top(i).y=m*(xpos.top-bbx(4))+bby(4); %2pt line eqn
-%         
-%     end
-        
 
-    
-    %build sub rectangles
-%     for i=1:sg_nx
-%         %first rect
-%        if i ==1
-%            rectangles{1}.vertex=[[bbx(1),bby(1)];...%bottom left
-%                          [x_mp.bottom(1).x,x_mp.bottom(1).y];...%bottom right mid point
-%                          [x_mp.top(1).x,x_mp.top(1).y];... %top right mid point
-%                          [bbx(4),bby(4)];...%top right
-%                          [bbx(1),bby(1)]]; 
-% 
-%     
-% %        last rect
-%        else if i==sg_nx
-%            rectangles{i}.vertex= [[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
-%                            [bbx(2),bby(2)];...
-%                            [bbx(3),bby(3)];...
-%                            [x_mp.top(i-1).x,x_mp.top(i-1).y];...
-%                            [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
-%            else
-%              rectangles{i}.vertex=[[x_mp.bottom(i-1).x,x_mp.bottom(i-1).y];...
-%                            [x_mp.bottom(i).x,x_mp.bottom(i).y];...
-%                            [x_mp.top(i).x,x_mp.top(i).y];...
-%                            [x_mp.top(i-1).x,x_mp.top(i-1).y];...
-%                            [x_mp.bottom(i-1).x,x_mp.bottom(i-1).y]];
-%            end
-%        end
-%         %initialize memory for triangle-rect association. Each index is an
-%         %index into the triangulation
-%         rectangles{i}.triangle_set=zeros(length(tri.Triangulation),1); %worst case....
-%         %number of triangles in this rectangle
-%         rectangles{i}.num_triangles=0;
-%           
-%     end
-%      
-%   
-%    %loop over all the nodes to find which rectrangle(s) a triangle
-%    %lies within
-%    fprint('Calculating spatial segmentation\n')
-%     for j=1:tri.size
-%        for i=1:sg_nx
-%            %eww.....but checks if any of the 3 vertices are in a rectangle
-%            %sub OBB
-%            if inRect(rectangles{i},proj_x(tri.Triangulation(j,1)),proj_y(tri.Triangulation(j,1))) > 0 ...
-%                    || inRect(rectangles{i},proj_x(tri.Triangulation(j,2)),proj_y(tri.Triangulation(j,2))) > 0 ...
-%                    || inRect(rectangles{i},proj_x(tri.Triangulation(j,3)),proj_y(tri.Triangulation(j,3))) > 0 
-%               
-%               rectangles{i}.num_triangles = rectangles{i}.num_triangles+1;
-%               rectangles{i}.triangle_set(rectangles{i}.num_triangles) = j; %save the index into the triangulation      
-%                shadows(j)=i;
-%            end
-%        end
-%     end
-%     
-%     triangle_set{:}=sort(triangle_set
-    
-%      fprintf('building shadows\n');
-     
-     %for each rectangle
-%      for i=1:sg_nx
-%         fprintf('Rectangle %i\n',i)
-%         
-%        %for each triangle in the rectangle
-%        for j=1:rectangles{i}.num_triangles 
-%            fprintf('... %f\n',j/rectangles{i}.num_triangles *100)
-%            for k=1:rectangles{i}.num_triangles 
-%                 if j ~= k ...
-%                        && proj_z(tri.Triangulation(rectangles{i}.triangle_set(j),3)) > proj_z(tri.Triangulation(rectangles{i}.triangle_set(k),3)) % z>z_2
-%                     if inside_triangle(triC{j}, ...
-%                        [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),1)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),1))],...
-%                        [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),2)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),2))],...
-%                        [proj_x(tri.Triangulation(rectangles{i}.triangle_set(k),3)) proj_y(tri.Triangulation(rectangles{i}.triangle_set(k),3))]) == 1 %true
-%                    
-%                       shadows(j)=1; %ith triangle is in shadow 
-%                     end
-%                 end
-%                     
-%            end
-%        end
-%     end
-    
     r=1;
-    sun = [r*cos(E)*cos(A);r*cos(E)*sin(A);r*sin(E)];
+    sun = [cos(E)*sin(A);cos(E)*cos(A);sin(E)];
 
-    if exist('ht','var')==1
-        delete(ht.th);
+    for i=1:max(size(tri))
+        angle = acos( dot(sun, [NormalVx(i)  NormalVy(i) NormalVz(i)]));
+        cosi(i) = (cos(angle)+1.0)/2.0;
     end
 
-    
+
+
 %testing code that plots the rectangles
 % ------------------------------------------------'
 %     tbb=[bbx(1:4),bby(1:4)]; %ignore the last point because it is out of
@@ -334,9 +197,9 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
             p = patch( ...
             'Vertices',[x(:) y(:) z(:)], ...
             'Faces', tri.Triangulation, ...
-            'facevertexcdata',proj_z(:),...
+            'facevertexcdata',cosi(:),...
             'facecolor','flat',...
-            'edgecolor','black');
+            'edgecolor','none');
         else
     
 %         for "as the sun"
@@ -345,12 +208,12 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
                 'Faces', tri.Triangulation, ...
                 'facevertexcdata',proj_z(:),...
                 'facecolor','flat',...
-                'edgecolor','black');
+                'edgecolor','none');
         end
 
     else
         if strcmp(viewpoint,'basin')
-             set(p,'facevertexcdata',proj_z(:));
+             set(p,'facevertexcdata',cosi(:));
         else
             %for "as the sun"
             set(p,'Vertices',[proj_x(:) proj_y(:) ],'facevertexcdata',proj_z(:));
@@ -360,21 +223,28 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
         end
         refreshdata
     end
-%     ht= mtit(datestr(addtodate(datenum(time, 'yyyy/mm/dd HH:MM:SS'),-UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS'), 'fontsize',14) ;
-%     set(ht.th,'color','white');
+    if exist('ht','var')==1
+        delete(ht.th);
+    end
+
+    
+ 
    
     if strcmp(viewpoint,'basin')
-       set(get(gca,'YLabel'),'string','Northing (m)','Fontsize',20)
-        set(get(gca,'XLabel'),'string','Easting (m)','Fontsize',20)
-        set(get(gca,'ZLabel'),'string','Elevation (m)','Fontsize',20)
-        set(gca,'Fontsize',12,'FontWeight','bold') 
-        cb=colorbar%('location','southoutside')
-        set(cb,'fontsize',16);
-        set(gcf,'color','white');
+%        set(get(gca,'YLabel'),'string','Northing (m)','Fontsize',20)
+%         set(get(gca,'XLabel'),'string','Easting (m)','Fontsize',20)
+%         set(get(gca,'ZLabel'),'string','Elevation (m)','Fontsize',20)
+%         set(gca,'Fontsize',12,'FontWeight','bold') 
+%         cb=colorbar%('location','southoutside')
+%         set(cb,'fontsize',16);
+%         set(gcf,'color','white');
+        set(gca,'visible','off');
+        set(gcf,'color','black');
     else
         set(gca,'visible','off');
     end
-
+    ht= mtit(datestr(addtodate(datenum(time, 'yyyy/mm/dd HH:MM:SS'),-UTC_offset,'hour'), 'yyyy/mm/dd HH:MM:SS'), 'fontsize',14) ;
+     set(ht.th,'color','white');
     
 %     F(frame)=getframe(gcf);
 %      export_fig( num2str(frame),'-png');
@@ -384,6 +254,7 @@ while datenum(time, 'yyyy/mm/dd HH:MM:SS') <= datenum(tend, 'yyyy/mm/dd HH:MM:SS
     
     time = datestr(addtodate(datenum(time,'yyyy/mm/dd HH:MM:SS'),step_size,step_type),'yyyy/mm/dd HH:MM:SS');
  
+% pause
 
 end
 hold off

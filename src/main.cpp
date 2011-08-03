@@ -115,13 +115,14 @@ int main()
 		std::cout << "Loading radiation data..." << std::endl;
 
 
- 		engine->evaluate("load aprilmayjune.csv");
+ 		engine->evaluate("load feb_1_data.csv");
 	//	engine->evaluate("load season2011met.csv");
 	//	engine->evaluate("load aprilmayjune.csv");
-    //	arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
+		
+    	arma::mat* radiation_data = engine->get_double_matrix("feb_1_data");
 	//	arma::mat* radiation_data = engine->get_double_matrix("season2011met");
-		arma::mat* radiation_data = engine->get_double_matrix("aprilmayjune");
-		engine->evaluate("clear aprilmayjune");
+	//	arma::mat* radiation_data = engine->get_double_matrix("aprilmayjune");
+		engine->evaluate("clear feb_1_data");
  		int data_counter = 0;
 
 		
@@ -134,15 +135,15 @@ int main()
 
 	
 
-// 		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
-// 			posix_time::hours(7)+posix_time::minutes(00)); 
-// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
-// 			posix_time::hours(19)+posix_time::minutes(0)); 
+		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
+			posix_time::hours(7)+posix_time::minutes(00)); 
+		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
+			posix_time::hours(19)+posix_time::minutes(0)); 
 
-		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
-			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
-		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
-			posix_time::hours(12)+posix_time::minutes(15)); 
+// 		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
+// 			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
+// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
+// 			posix_time::hours(12)+posix_time::minutes(15)); 
 		
 		
 		posix_time::ptime chkpt = time; //start with our first time 
@@ -158,25 +159,25 @@ int main()
 		std::stringstream ss;
 		ss.imbue(std::locale(ss.getloc(),facet));
 		
-		//setup the plot
-//  		engine->evaluate("ff=figure; set(gcf,'units','normalized','outerposition',[0 0 1 1]);");
-//  		engine->evaluate("set(ff,'Renderer','OpenGL')");
-
-		//set the colorbar limits
-//  		double min = radiation_data->unsafe_col(0).min();
-//  		double max = radiation_data->unsafe_col(0).max();
-//   		engine->evaluate(std::string("caxis([") + boost::lexical_cast<std::string>(min) + std::string(",") + boost::lexical_cast<std::string>(max) + std::string("])"));
-//		engine->evaluate("caxis([0 700])");
 		std::string viewpoint = "basin";
-		//for as basin
- 		if(viewpoint == "basin")
- 			engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
-		
-
+		bool plot = true;
 		//plot handle
 		double handle=-1.0;
 		//title handle
 		double ht = -1.0;
+
+		if(plot)
+		{
+			//setup the plot
+ 			engine->evaluate("ff=figure; set(gcf,'units','normalized','outerposition',[0 0 1 1]);");
+  			engine->evaluate("set(ff,'Renderer','OpenGL')");
+
+			//for as basin
+ 			if(viewpoint == "basin")
+  				engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
+		}
+
+
 
 		arma::vec cummulative_error(tri->size());
 		cummulative_error.zeros();
@@ -314,7 +315,7 @@ int main()
 					 
 					(*tri)(i).radiation_dir  = (*radiation_data)(data_counter,2)/(cos(M_PI/2.0 - E)) * cos(angle);
 																				//correct for the flat plane
-
+				//	(*tri)(i).radiation_dir = angle;
 
 				}
 
@@ -446,16 +447,16 @@ int main()
 				for(int i=0;i<tri->size();i++)
 				{
 					shadows(i)   = (*tri)(i).shadow;
-					radiation(i) = (*tri)(i).radiation_dir;// * (1.0-(*tri)(i).shadow) + (*tri)(i).radiation_diff;
+					radiation(i) = (*tri)(i).radiation_dir * (1.0-(*tri)(i).shadow) + (*tri)(i).radiation_diff;
 					rad_self(i)  = (*tri)(i).radiation_dir + (*tri)(i).radiation_diff;
 
 					cummulative_error(i) = cummulative_error(i) + (rad_self(i) - radiation(i))*900.0;
 				}
 
 // 				engine->put_double_vector("shadows",&shadows);
-// 				engine->put_double_vector("radiation",&radiation);
+ 				engine->put_double_vector("radiation",&radiation);
 // 				engine->put_double_vector("self",&rad_self);
-// 				engine->put_double_vector("cummError",&cummulative_error);
+ 				engine->put_double_vector("cummError",&cummulative_error);
 // 
 // 				engine->evaluate("shadows=1-shadows");
 
@@ -477,27 +478,30 @@ int main()
 // 				gfx->hold_off();
 
 				
+				if(plot)
+				{
 
-				//for basin view
-// 				if(viewpoint=="basin")
-// 				{
-// 					
-// 					if(handle == -1)
-// 						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","radiation"); //self-radiation cummError
-// 					else
-// 						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","radiation");
-// 				}
-// 				else
-// 				{
-// 					//as sun
-// 
-// 					if(handle == -1)
-// 						handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","shadows");
-// 					else
-// 						handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","shadows");
-// 					engine->evaluate("axis tight");
-// 
-// 				}
+				
+					//for basin view
+					if(viewpoint=="basin")
+					{
+					
+						if(handle == -1)
+							handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","radiation"); //self-radiation cummError
+						else
+							handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","radiation");
+					}
+					else
+					{
+						//as sun
+
+						if(handle == -1)
+							handle = gfx->plot_patch("[mxRot(:,1) mxRot(:,2)]","tri","shadows");
+						else
+							handle = gfx->update_patch(handle,"[mxRot(:,1) mxRot(:,2)]","shadows");
+						engine->evaluate("axis tight");
+
+					}
 
 				//engine->evaluate("hold on;plot3(626345.8844,5646903.1124,2234.66666,'o','MarkerFaceColor','white','MarkerSize',10)");
 // 				engine->evaluate("set(gcf,'color','black');set(gca,'visible','off');");
@@ -521,6 +525,8 @@ int main()
 // 
 // 				
 /*				gfx->save_to_file(fname_time.str());		*/
+
+				}
   				
 				
 			}
@@ -565,7 +571,7 @@ int main()
 
 			time = time + dt;
 			data_counter++;
-		//	system("PAUSE");
+			system("PAUSE");
 
 		}
 		arma::vec remoteshadow;

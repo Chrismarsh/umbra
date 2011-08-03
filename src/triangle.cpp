@@ -535,10 +535,10 @@ void triangle::compute_azimuth()
 
 	//y=north
 	double phi = atan2(m_surface_normal(1),m_surface_normal(0)); // + M_PI /*-3.14159/2*/; //south == 0
-	m_azimuth = phi - M_PI/2; //set north = 0
+	m_azimuth = phi - M_PI/2.0; //set north = 0
 
 	if(m_azimuth < 0.0)
-		m_azimuth += 2*M_PI;
+		m_azimuth += 2.0*M_PI;
 }
 
 void triangle::compute_slope()

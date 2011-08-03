@@ -26,6 +26,7 @@
 // 	% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 // 	% POSSIBILITY OF SUCH DAMAGE.
 
+#include <conio.h>
 
 #include <iostream>
 #include <string.h>
@@ -300,11 +301,7 @@ int main()
 
 					//angle b/w sun and facenormal
 					double angle = acos(arma::dot(S,(*tri)(i).get_facenormal()));
-
-					//stop it wrapping around
-  					if(angle > 3.14159/2.0)
- 						angle = 3.14159/2.0 ;
-						
+					angle = (cos(angle)+1.0)/2.0; //get it within the range [0..1]
 
  					(*tri)(i).radiation_diff = (*radiation_data)(data_counter,1);//col 1 = diffuse
 
@@ -314,13 +311,13 @@ int main()
 					double avg_skyview = ( (*skyview)(i1) + (*skyview)(i2) + (*skyview)(i3) ) /3.0;
 					(*tri)(i).radiation_diff *= avg_skyview; //correct for skyview factor
 					
-
+					 
 					(*tri)(i).radiation_dir  = (*radiation_data)(data_counter,2)/(cos(M_PI/2.0 - E)) * cos(angle);//col 2 = direct 
 																				//correct for the flat plane
-//  					double rad =  1370.0/1.0344 *  cos(angle) * 0.75; //use a "default" transmittance
-// 					(*tri)(i).radiation_dir = rad;
-// 					(*tri)(i).radiation_diff = 0.0;
-					
+// 					double slope =(*tri)(i).slope();
+// 					double aspect = (*tri)(i).azimuth();
+//  					(*tri)(i).radiation_dir = angle;
+						//cos(slope) * cos(M_PI/2.0 - E) + sin(slope)*sin(M_PI/2.0 - E)*cos(A - aspect);
 
 				}
 
@@ -452,14 +449,14 @@ int main()
 				for(int i=0;i<tri->size();i++)
 				{
 					shadows(i)   = (*tri)(i).shadow;
-					radiation(i) = (*tri)(i).radiation_dir * (1.0-(*tri)(i).shadow) + (*tri)(i).radiation_diff;
+					radiation(i) = (*tri)(i).radiation_dir;// * (1.0-(*tri)(i).shadow) + (*tri)(i).radiation_diff;
 					rad_self(i)  = (*tri)(i).radiation_dir + (*tri)(i).radiation_diff;
 
 					cummulative_error(i) = cummulative_error(i) + (rad_self(i) - radiation(i))*900.0;
 				}
 
  				engine->put_double_vector("shadows",&shadows);
-// 				engine->put_double_vector("radiation",&radiation);
+ 				engine->put_double_vector("radiation",&radiation);
 // 				engine->put_double_vector("self",&rad_self);
  				engine->put_double_vector("cummError",&cummulative_error);
 // 
@@ -489,9 +486,9 @@ int main()
 				{
 					
 					if(handle == -1)
-						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","shadows"); //self-radiation cummError
+						handle = gfx->plot_patch("[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","tri","radiation"); //self-radiation cummError
 					else
-						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","shadows");
+						handle = gfx->update_patch(handle,"[mxDomain(:,1) mxDomain(:,2) mxDomain(:,3)]","radiation");
 				}
 				else
 				{
@@ -526,9 +523,9 @@ int main()
 // 				gfx->colorbar("off");
 // 
 // 				
-// 				gfx->save_to_file(fname_time.str());		
-//   				std::cout << "paused" << std::endl;
-//  				std::cin.get();
+/*				gfx->save_to_file(fname_time.str());		*/
+  				
+				
 			}
 			else
 			{
@@ -571,7 +568,7 @@ int main()
 
 			time = time + dt;
 			data_counter++;
-
+			system("PAUSE");
 
 		}
 		arma::vec remoteshadow;

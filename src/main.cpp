@@ -556,31 +556,6 @@ int main()
 				obs_shortwave_selfshadow.push_back(0);
 			}
 
-			//checkpoint code
-			boost::posix_time::time_duration td = boost::posix_time::hours(1); //7 days
-			if( (time - chkpt) >=td)
-			{
-				arma::vec chkpt_remoteshadow(obs_shortwave_remoteshadow.size());
-				arma::vec chkpt_selfshadow(obs_shortwave_selfshadow.size());
-				for(int i = 0; i< obs_shortwave_remoteshadow.size();i++)
-				{
-					chkpt_remoteshadow(i) = obs_shortwave_remoteshadow.at(i);
-					chkpt_selfshadow(i) = obs_shortwave_selfshadow.at(i);
-				}
-				
-				boost::shared_ptr<posix_time::time_facet> fname_time_facet(new posix_time::time_facet("%Y-%m-%d-%H-%M-%S"));
-				std::stringstream fname_time;
-				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet.get()));
-				fname_time << time;
-
-				chkpt_remoteshadow.save(fname_time.str() + std::string("_remoteshadow_values.txt"), arma::raw_ascii);
-				chkpt_selfshadow.save(fname_time.str() + std::string("_selfshadow_values.txt"), arma::raw_ascii);
-
-				std::cout << "Checkpointed at " << fname_time.str() << std::endl;
-
-				chkpt = time;
-			}
-			//end chkpt
 
 // 			std::cout << "Paused..." << std::endl;
 // 			std::cin.get();

@@ -61,7 +61,7 @@ public:
 	triangle* find_containing_triangle(double x, double y);
 
 	//creates the triangulation matrix for matlab
-	arma::mat matlab_tri_matrix();
+	maw::d_mat matlab_tri_matrix();
 
 
 

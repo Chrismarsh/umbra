@@ -71,7 +71,7 @@ class bounding_rect
 public:
 	bounding_rect(maw::matlab_engine* m_engine);
 	~bounding_rect();
-	void make(const arma::vec* x, const arma::vec* y, int n_rows, int n_cols);
+	void make(const maw::d_vec x, const maw::d_vec y,  int n_rows, int n_cols);
 	rect* bounding_rect::get_rect( int i, int j );
 	int n_rows;
 	int n_cols;

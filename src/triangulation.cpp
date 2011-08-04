@@ -56,22 +56,25 @@ void triangulation::create_delaunay( arma::vec* x, arma::vec* y, arma::vec* z)
 		//change this later to the struct lookup
 		m_engine->evaluate("t=tri.Triangulation");
 		//get our triangulation structure from matlab
-		mxArray* tri = m_engine->get("t");
+
+		maw::d_mat tri = m_engine->get_double_matrix("t");
+	//	mxArray* tri = m_engine->get("t");
 	
 		//will be n * 3
-		const mwSize* size = mxGetDimensions(tri);
- 		m_size = size[0]; //first element is the # of rows
-		
-		double* t = mxGetPr(tri);
+// 		const mwSize* size = mxGetDimensions(tri);
+//  		m_size = size[0]; //first element is the # of rows
+		m_size = tri->n_rows;
+
+	//double* t = mxGetPr(tri);
 
 		for (size_t i = 0;i<m_size; i++)
 		{
 			//col major lookup!!!
 			//get the row index data from the matlab triangulation structure
 			//note: all these indexes will be off by 1 because matlab indexing starts at 1 and not 0
-				int v1 = int(t[i+0*m_size]); //v1 -= 1;
-				int v2 = int(t[i+1*m_size]); //v2 -= 1;
-				int v3 = int(t[i+2*m_size]); //v3 -= 1;
+				int v1 = int((*tri)(i+0*m_size)); //v1 -= 1;
+				int v2 = int((*tri)(i+1*m_size)); //v2 -= 1;
+				int v3 = int((*tri)(i+2*m_size)); //v3 -= 1;
 
 				point vertex1,vertex2,vertex3;
 				vertex1.x = (*x)(v1-1);
@@ -165,8 +168,8 @@ void triangulation::compute_face_normals()
 	m_engine->evaluate("center=[PosVx PosVy PosVz]");
 	m_engine->evaluate("clear PosVx PosVy PosVz NormalVx NormalVy NormalVz");
 
-	arma::mat* normals = m_engine->get_double_matrix("normals");
-	arma::mat* centers = m_engine->get_double_matrix("center");
+	maw::d_mat normals = m_engine->get_double_matrix("normals");
+	maw::d_mat centers = m_engine->get_double_matrix("center");
 
 	size_t counter = 0;
 	for(auto it=m_triangles.begin();it!=m_triangles.end();it++)
@@ -221,15 +224,15 @@ triangle* triangulation::find_containing_triangle( double x,double y )
 	return NULL;
 }
 
-arma::mat triangulation::matlab_tri_matrix()
+maw::d_mat triangulation::matlab_tri_matrix()
 {
-	arma::mat tri(m_size,3);
+	maw::d_mat tri(new arma::mat(m_size,3));
 	size_t i=0;
 	for(auto it=m_triangles.begin();it!=m_triangles.end();it++)
 	{
-		tri(i,0) = (*it)->global_id[0];
-		tri(i,1) = (*it)->global_id[1];
-		tri(i,2) = (*it)->global_id[2];
+		(*tri)(i,0) = (*it)->global_id[0];
+		(*tri)(i,1) = (*it)->global_id[1];
+		(*tri)(i,2) = (*it)->global_id[2];
 		i++;
 	}
 

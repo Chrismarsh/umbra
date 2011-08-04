@@ -30,7 +30,7 @@
 
 
 
-void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_rows, int n_cols)
+void bounding_rect::make(const maw::d_vec x, const maw::d_vec y, int n_rows, int n_cols)
 {
 	int n_segments = n_cols;
 	int n_v_segments = n_rows;
@@ -48,8 +48,8 @@ void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_rows, int
 	m_engine->evaluate("[bbx,bby,~,~]=minboundrect(BBR_x(:),BBR_y(:));");
 
 
-	arma::vec* bbx = (m_engine->get_double_vector("bbx"));
-	arma::vec* bby = (m_engine->get_double_vector("bby"));
+	maw::d_vec bbx = (m_engine->get_double_vector("bbx"));
+	maw::d_vec bby = (m_engine->get_double_vector("bby"));
 
 	m_engine->evaluate("clear bbx bby BBR_x BBR_y");
 
@@ -120,8 +120,8 @@ void bounding_rect::make(const arma::vec* x, const arma::vec* y, int n_rows, int
 		}
 	}
 
-	delete bbx;
-	delete bby;
+// 	delete bbx;
+// 	delete bby;
 	
 	
 /*

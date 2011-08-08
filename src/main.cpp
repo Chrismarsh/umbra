@@ -51,7 +51,7 @@ using namespace boost;
 int main()
 
 {
-	/*try{*/
+	try{
 
 		maw::matlab_engine* engine = new maw::matlab_engine();
 		maw::graphics* gfx = new maw::graphics(engine);
@@ -64,8 +64,8 @@ int main()
 
 		//loads the data via matlab
 		std::cout << "Loading data" << std::endl;
-		engine->evaluate("load tin_5mtol_30mdem_nodes.csv");
-		maw::d_mat xyz = engine->get_double_matrix("tin_5mtol_30mdem_nodes");
+		engine->evaluate("load tin_2mtol_1mdem_nodes.csv");
+		maw::d_mat xyz = engine->get_double_matrix("tin_2mtol_1mdem_nodes");
 
 		//load skyview data
 		std::cout << "Loading skyview data" << std::endl;
@@ -113,14 +113,14 @@ int main()
 		std::cout << "Loading radiation data..." << std::endl;
 
 
- 		engine->evaluate("load feb_1_data.csv");
+ 	//	engine->evaluate("load feb_1_data.csv");
 	//	engine->evaluate("load season2011met.csv");
-	//	engine->evaluate("load aprilmayjune.csv");
+		engine->evaluate("load aprilmayjune.csv");
 		
-    	maw::d_mat radiation_data = engine->get_double_matrix("feb_1_data");
+    //	maw::d_mat radiation_data = engine->get_double_matrix("feb_1_data");
 	//	arma::mat* radiation_data = engine->get_double_matrix("season2011met");
-	//	maw::d_mat radiation_data = engine->get_double_matrix("aprilmayjune");
-		engine->evaluate("clear feb_1_data");
+		maw::d_mat radiation_data = engine->get_double_matrix("aprilmayjune");
+		engine->evaluate("clear aprilmayjune");
  		int data_counter = 0;
 
 		
@@ -131,7 +131,6 @@ int main()
 // 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
 // 			posix_time::hours(12)+posix_time::minutes(15)); 
 
-	
 
 // 		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
 // 			posix_time::hours(7)+posix_time::minutes(00)); 
@@ -299,16 +298,19 @@ int main()
 						<< sin(E) << arma::endr;
 
 					//angle b/w sun and facenormal
-					double angle = acos(arma::dot(S,(*tri)(i).get_facenormal()));
-					angle = (cos(angle)+1.0)/2.0; //get it within the range [0..1]
+					double angle = acos(arma::dot(S,(*tri)(i).get_facenormal()));\
+					angle = cos(angle);
 
+					if(angle < 0.0)
+						angle = 0.0;
+					
  					(*tri)(i).radiation_diff = (*radiation_data)(data_counter,1);//col 1 = diffuse
 
 					int i1 = (*tri)(i).global_id[0]-1;
 					int i2 = (*tri)(i).global_id[1]-1;
 					int i3 = (*tri)(i).global_id[2]-1;
-// 					double avg_skyview = ( (*skyview)(i1) + (*skyview)(i2) + (*skyview)(i3) ) /3.0;
-// 					(*tri)(i).radiation_diff *= avg_skyview; //correct for skyview factor
+					double avg_skyview = ( (*skyview)(i1) + (*skyview)(i2) + (*skyview)(i3) ) /3.0;
+					(*tri)(i).radiation_diff *= avg_skyview; //correct for skyview factor
 					
 					 
 					(*tri)(i).radiation_dir  = (*radiation_data)(data_counter,2)/(cos(M_PI/2.0 - E)) * cos(angle);
@@ -580,14 +582,14 @@ int main()
 		*cummulative_error = *cummulative_error / 1000000.0;
 
 		engine->put_double_vector("error",cummulative_error);
-		engine->evaluate("save season_2m_error_mat");
+		engine->evaluate("save AMJ_2m_error_mat");
 		engine->stop();
-// 	}
-// 	catch(std::runtime_error e)
-// 	{
-// 		std::cout << e.what() << std::endl;																						
-// 
-// 	}
+	}
+	catch(std::runtime_error e)
+	{
+		std::cout << e.what() << std::endl;																						
+
+	}
  	std::cout << "Finished" << std::endl;
 
 	return 0;

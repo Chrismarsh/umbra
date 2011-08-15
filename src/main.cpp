@@ -113,14 +113,14 @@ int main()
 		std::cout << "Loading radiation data..." << std::endl;
 
 
- 	//	engine->evaluate("load feb_1_data.csv");
+ 		engine->evaluate("load feb_1_data.csv");
 	//	engine->evaluate("load season2011met.csv");
-		engine->evaluate("load aprilmayjune.csv");
+	//	engine->evaluate("load aprilmayjune.csv");
 		
-    //	maw::d_mat radiation_data = engine->get_double_matrix("feb_1_data");
+    	maw::d_mat radiation_data = engine->get_double_matrix("feb_1_data");
 	//	arma::mat* radiation_data = engine->get_double_matrix("season2011met");
-		maw::d_mat radiation_data = engine->get_double_matrix("aprilmayjune");
-		engine->evaluate("clear aprilmayjune");
+	//	maw::d_mat radiation_data = engine->get_double_matrix("aprilmayjune");
+	//	engine->evaluate("clear feb_1_data");
  		int data_counter = 0;
 
 		
@@ -131,16 +131,15 @@ int main()
 // 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
 // 			posix_time::hours(12)+posix_time::minutes(15)); 
 
+		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
+			posix_time::hours(7)+posix_time::minutes(00)); 
+		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
+			posix_time::hours(18)+posix_time::minutes(45)); 
 
-// 		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
-// 			posix_time::hours(7)+posix_time::minutes(00)); 
-// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
-// 			posix_time::hours(19)+posix_time::minutes(0)); 
-
-		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
-			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
-		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
-			posix_time::hours(12)+posix_time::minutes(15)); 
+// 		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
+// 			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
+// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
+// 			posix_time::hours(12)+posix_time::minutes(15)); 
 		
 		
 		posix_time::ptime chkpt = time; //start with our first time 
@@ -149,7 +148,7 @@ int main()
 		posix_time::time_duration dt = posix_time::minutes(15);
 
 		//UTC offset. Don't know how to use datetime's UTC converter yet....
-		posix_time::time_duration UTC_offset = posix_time::hours(7);
+		posix_time::time_duration UTC_offset = posix_time::hours(6);
 		
 		//set the format
 		posix_time::time_facet* facet = new posix_time::time_facet("%Y/%m/%d %H:%M:%S");
@@ -209,7 +208,7 @@ int main()
 
 			
 			//check negative solar elevation 
-			if(E > 0)
+			if(El > 5)
 			{	
 
 				//eqns (6) & (7) in Montero
@@ -297,26 +296,37 @@ int main()
 						<< cos(E) * cos(A) << arma::endr
 						<< sin(E) << arma::endr;
 
+
+					
+ 					double diff_obs = (*radiation_data)(data_counter,1);//col 1 = diffuse
+
+					int i1 = ((*tri)(i).global_id[0])-1;
+					int i2 = ((*tri)(i).global_id[1])-1;
+					int i3 = ((*tri)(i).global_id[2])-1;
+					double avg_skyview = ( (*skyview)(i1) + (*skyview)(i2) + (*skyview)(i3) ) /3.0;
+					(*tri)(i).radiation_diff = diff_obs * avg_skyview; //correct for skyview factor
+					
+					arma::vec flat_normal(3);//xyz
+					flat_normal(0)=0;
+					flat_normal(1)=0;
+					flat_normal(2)=1; 
+
+					//correct the observation for the flat plane
+					//double corrected_obs_direct = (*radiation_data)(data_counter,2) * cos(acos(arma::dot(S,flat_normal)))  / cos(M_PI/2.0 - E);
+					//double corrected_obs_direct = (*radiation_data)(data_counter,2) / cos(M_PI/2.0 - E);
+				
 					//angle b/w sun and facenormal
-					double angle = acos(arma::dot(S,(*tri)(i).get_facenormal()));\
-					angle = cos(angle);
+ 					double angle = acos(arma::dot(S,(*tri)(i).get_facenormal()));
+ 					angle = cos(angle);
 
 					if(angle < 0.0)
 						angle = 0.0;
-					
- 					(*tri)(i).radiation_diff = (*radiation_data)(data_counter,1);//col 1 = diffuse
 
-					int i1 = (*tri)(i).global_id[0]-1;
-					int i2 = (*tri)(i).global_id[1]-1;
-					int i3 = (*tri)(i).global_id[2]-1;
-					double avg_skyview = ( (*skyview)(i1) + (*skyview)(i2) + (*skyview)(i3) ) /3.0;
-					(*tri)(i).radiation_diff *= avg_skyview; //correct for skyview factor
-					
-					 
-					(*tri)(i).radiation_dir  = (*radiation_data)(data_counter,2)/(cos(M_PI/2.0 - E)) * cos(angle);
-																				//correct for the flat plane
-				//	(*tri)(i).radiation_dir = angle;
-
+					double obs_dir = (*radiation_data)(data_counter,2);
+					double corrected_obs_direct = obs_dir  /  sin(E);
+					(*tri)(i).radiation_dir  =  corrected_obs_direct * angle; //correct for the triangle aspect & slope
+																			
+					(*tri)(i).cosi = angle;
 				}
 
 				//put the rotated domain to matlab
@@ -448,10 +458,10 @@ int main()
 
 			
 
-// 				maw::d_vec shadows(new arma::vec(tri->size()));
-// 				maw::d_vec radiation_cast(new arma::vec(tri->size()));
-// 				maw::d_vec radiation_self(new arma::vec(tri->size()));
-
+ 				maw::d_vec shadows(new arma::vec(tri->size()));
+ 				maw::d_vec radiation_cast(new arma::vec(tri->size()));
+ 				maw::d_vec radiation_self(new arma::vec(tri->size()));
+				maw::d_vec cosi(new arma::vec(tri->size()));
 			
 				#pragma omp parallel for
 				for(int i=0;i<tri->size();i++)
@@ -460,25 +470,25 @@ int main()
 					double radiation = (*tri)(i).radiation_dir * (1.0-(*tri)(i).shadow) + (*tri)(i).radiation_diff;
 					double rad_self  = (*tri)(i).radiation_dir + (*tri)(i).radiation_diff;
 
-// 					(*shadows)(i) = (*tri)(i).shadow;
-// 					(*radiation_cast)(i) = radiation;
-// 					(*radiation_self)(i) = rad_self;
-
+ 					(*shadows)(i) = (*tri)(i).shadow;
+ 					(*radiation_cast)(i) = radiation;
+ 					(*radiation_self)(i) = rad_self;
+					(*cosi)(i) = (*tri)(i).cosi;
 					(*cummulative_error)(i) += (rad_self - radiation)*900.0;
 				}
 
-// 				engine->put_double_vector("shadows",shadows);
-// 				engine->put_double_vector("radiation",radiation_cast);
-// 				engine->put_double_vector("self",radiation_self);
-// 				engine->put_double_vector("cummError",cummulative_error);
-// 
-// 				engine->evaluate("shadows=1-shadows");
+ 				engine->put_double_vector("shadows",shadows);
+ 				engine->put_double_vector("radiation",radiation_cast);
+ 				engine->put_double_vector("self",radiation_self);
+ 				engine->put_double_vector("cummError",cummulative_error);
+				engine->put_double_vector("cosi",cosi);
+ 				engine->evaluate("shadows=1-shadows");
 
 				
 			//save the obs_triangle values
 			//need to expand for more than 1 obs pt
-				double radiation = (*tri)(obs_tri->triangle_id).radiation_dir * (1.0-(*tri)(obs_tri->triangle_id).shadow) + (*tri)(obs_tri->triangle_id).radiation_diff;
-				double rad_self  = (*tri)(obs_tri->triangle_id).radiation_dir + (*tri)(obs_tri->triangle_id).radiation_diff;
+				double radiation = (*radiation_cast)(obs_tri->triangle_id);
+				double rad_self  = (*radiation_self)(obs_tri->triangle_id);
 
 				std::cout << "Rad: " << radiation << "\t Self: " << rad_self << std::endl; 
 				obs_shortwave_remoteshadow.push_back(radiation);
@@ -541,6 +551,8 @@ int main()
 // 				std::stringstream fname_time;
 // 				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet));
 // 				fname_time << time;
+
+
 // 
 // 				gfx->colorbar("off");
 // 
@@ -549,7 +561,12 @@ int main()
 
 				}
   				
-				
+				posix_time::time_facet* fname_time_facet = new posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
+				std::stringstream fname_time;
+				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet));
+				fname_time << time;
+
+				engine->evaluate(std::string("save ") + fname_time.str());
 			}
 			else
 			{
@@ -559,8 +576,8 @@ int main()
 			}
 
 
-// 			std::cout << "Paused..." << std::endl;
-// 			std::cin.get();
+//  			std::cout << "Paused..." << std::endl;
+//  			std::cin.get();
 			time = time + dt;
 			data_counter++;
 
@@ -576,13 +593,13 @@ int main()
 			selfshadow(i) = obs_shortwave_selfshadow[i];
 		}
 
-		remoteshadow.save("remoteshadow_values.txt", arma::raw_ascii);
-		selfshadow.save("selfshadow_values.txt", arma::raw_ascii);
+		remoteshadow.save("Feb1_remoteshadow_values.csv", arma::raw_ascii);
+		selfshadow.save("Feb1_selfshadow_values.csv", arma::raw_ascii);
 
 		*cummulative_error = *cummulative_error / 1000000.0;
 
 		engine->put_double_vector("error",cummulative_error);
-		engine->evaluate("save AMJ_2m_error_mat");
+		engine->evaluate("save Feb1_2m_error_mat");
 		engine->stop();
 	}
 	catch(std::runtime_error e)

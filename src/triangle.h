@@ -81,6 +81,7 @@ public:
 	double shadow;
 	double z_prime;
 	double area;
+	double cosi;
 
 	point center;
 	point rot_center;

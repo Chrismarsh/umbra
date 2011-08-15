@@ -30,6 +30,12 @@
     <ClInclude Include="src\triangle.h" />
     <ClInclude Include="src\triangulation.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="My Inspector Results\r006mi3\r006mi3.insp" />
+    <None Include="My Inspector Results\r007mi3\r007mi3.insp" />
+    <None Include="My Inspector Results\r008mi3\r008mi3.insp" />
+    <None Include="My Inspector Results\r009mi3\r009mi3.insp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5035F651-E13F-481D-8B4F-55B53E39E95F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -41,6 +47,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>Intel Parallel Composer 2011</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -48,18 +55,21 @@
     <CharacterSet>Unicode</CharacterSet>
     <UseIntelMKL>
     </UseIntelMKL>
+    <PlatformToolset>Intel Parallel Composer 2011</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>Intel Parallel Composer 2011</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>Intel Parallel Composer 2011</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -88,8 +98,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)\libs\libmaw\src;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\libs\libmaw\lib;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)..\libmaw\src;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files\boost\boost_1_47_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)..\libmaw\lib;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files\boost\boost_1_47_0\lib64\lib;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
     <ExecutablePath>C:\Program Files\MATLAB\R2011a\bin\win64;$(ExecutablePath)</ExecutablePath>
     <TargetName>$(ProjectName)_d</TargetName>
     <OutDir>$(SolutionDir)\bin\$(Platform)-$(Configuration)\</OutDir>
@@ -104,8 +114,8 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)\bin\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(Platform)-$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)\libs\libmaw\src;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files %28x86%29\boost\boost_1_46_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\libs\libmaw\lib;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files %28x86%29\boost\boost_1_46_0\lib64;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)..\libmaw\src;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\include;C:\Program Files\boost\boost_1_47_0\;$(SolutionDir)\libs\armadillo-1.2.0\include;C:\Program Files\MATLAB\R2011a\extern\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)..\libmaw\lib;C:\Program Files (x86)\Intel\ComposerXE-2011\mkl\lib\intel64;C:\Program Files\boost\boost_1_47_0\lib64\lib;C:\Program Files\MATLAB\R2011a\extern\lib\win64\microsoft;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -130,6 +140,9 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FloatingPointModel>Fast</FloatingPointModel>
       <OpenMPSupport>true</OpenMPSupport>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <OpenMP>GenerateParallelCode</OpenMP>
+      <Cpp0xSupport>true</Cpp0xSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -168,6 +181,10 @@
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
       <OpenMPSupport>true</OpenMPSupport>
+      <UseMSVC>false</UseMSVC>
+      <Parallelization>true</Parallelization>
+      <OpenMP>GenerateParallelCode</OpenMP>
+      <Cpp0xSupport>true</Cpp0xSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -36,7 +36,6 @@
 using namespace boost;
 
 int main()
-
 {
 	try{
 

@@ -163,7 +163,10 @@ int main()
  			if(viewpoint == "basin")
   				engine->evaluate(" campos(  1.0e+006 .*[ 0.6651    5.6380    0.0080] )");
 		}
-
+		maw::d_vec shadows(new arma::vec(tri->size()));
+		maw::d_vec radiation_cast(new arma::vec(tri->size()));
+		maw::d_vec radiation_self(new arma::vec(tri->size()));
+		maw::d_vec cosi(new arma::vec(tri->size()));
 
 
 		maw::d_vec cummulative_error(new arma::vec(tri->size()));
@@ -219,8 +222,7 @@ int main()
  				bounding_rect BBR(engine);
 				maw::d_vec rot_cp_x(new arma::vec(cornerpoints->n_rows));
 				maw::d_vec rot_cp_y(new arma::vec(cornerpoints->n_rows));
-
-
+				
 				for(int i =0; i<cornerpoints->n_rows; i++)
 				{
 					arma::vec coord(3);
@@ -234,8 +236,9 @@ int main()
 					(*rot_cp_y)(i) = coord(1);
 				}
 				BBR.make(rot_cp_x,rot_cp_y,50,50);
-				
+				std::cout <<"Running..."<<std::endl;
 				//perform the euler rotation
+				#pragma omp parallel for
 				for(size_t i = 0; i < tri->size(); i++)
 				{
 					//-------------
@@ -430,10 +433,7 @@ int main()
 
 			
 
- 				maw::d_vec shadows(new arma::vec(tri->size()));
- 				maw::d_vec radiation_cast(new arma::vec(tri->size()));
- 				maw::d_vec radiation_self(new arma::vec(tri->size()));
-				maw::d_vec cosi(new arma::vec(tri->size()));
+
 			
 				#pragma omp parallel for
 				for(int i=0;i<tri->size();i++)
@@ -533,16 +533,16 @@ int main()
 // 
 // 				
 /*				gfx->save_to_file(fname_time.str());		*/
-
-			} //end solar elevation check
-  				
+				}//end if plot
+				
 				posix_time::time_facet* fname_time_facet = new posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
 				std::stringstream fname_time;
 				fname_time.imbue(std::locale(fname_time.getloc(),fname_time_facet));
 				fname_time << time;
 
 				engine->evaluate(std::string("save ") + fname_time.str());
-			}
+
+			}//end elevation check
 			else
 			{
 				//sun below horizon?
@@ -557,7 +557,9 @@ int main()
 			data_counter++;
 
 
-		}
+		}//end time loop
+
+
 		arma::vec remoteshadow;
 		arma::vec selfshadow;
 		remoteshadow.reshape(obs_shortwave_remoteshadow.size(),1); //this is stupid and hacky. fix it later

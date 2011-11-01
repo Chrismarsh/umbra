@@ -47,7 +47,12 @@ int main()
 		engine->set_working_dir();
 
 		std::cout << "Matlab engine created" << std::endl;
-
+		
+		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\umbra\\matlab");
+		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\libmaw\\matlab_support");
+		engine->add_dir_to_path("E:\\Documents\\Masters\\model runs\\thesis\\met");
+		engine->add_dir_to_path("E:\\Documents\\Masters\\model runs\\thesis\\dem");
+		
 		//loads the data via matlab
 		std::cout << "Loading data" << std::endl;
 		engine->evaluate("load tin_2mtol_1mdem_nodes.csv");
@@ -164,6 +169,10 @@ int main()
 		maw::d_vec cummulative_error(new arma::vec(tri->size()));
 		cummulative_error->zeros();
 
+		//hold the rotate domain to send to matlab
+		int num_nodes = xyz->n_rows;
+		maw::d_mat rot_domain(new arma::mat(num_nodes,3));
+		rot_domain->zeros();
 
 		while (time <= end_time)
 		{
@@ -204,9 +213,29 @@ int main()
 				K   << cos(z0)          << sin(z0)          << 0       <<arma::endr
 					<< -cos(q0)*sin(z0) << cos(q0)*cos(z0)  << sin(q0) << arma::endr
 					<< sin(q0)*sin(z0)  << -cos(z0)*sin(q0) << cos(q0) << arma::endr;
+ 				
+				std::cout <<"Building BBR..." <<std::endl;
+ 				//build bounding rect
+ 				bounding_rect BBR(engine);
+				maw::d_vec rot_cp_x(new arma::vec(cornerpoints->n_rows));
+				maw::d_vec rot_cp_y(new arma::vec(cornerpoints->n_rows));
 
+
+				for(int i =0; i<cornerpoints->n_rows; i++)
+				{
+					arma::vec coord(3);
+					coord(0) = (*cornerpoints)(i,0);
+					coord(1) = (*cornerpoints)(i,1);
+					coord(2) = (*cornerpoints)(i,2);
+					
+					coord = K * coord;
+
+					(*rot_cp_x)(i) = coord(0);
+					(*rot_cp_y)(i) = coord(1);
+				}
+				BBR.make(rot_cp_x,rot_cp_y,50,50);
+				
 				//perform the euler rotation
-
 				for(size_t i = 0; i < tri->size(); i++)
 				{
 					//-------------
@@ -313,69 +342,24 @@ int main()
 					(*tri)(i).radiation_dir  =  corrected_obs_direct * angle; //correct for the triangle aspect & slope
 																			
 					(*tri)(i).cosi = angle;
-				}
 
-				//put the rotated domain to matlab
-				std::cout <<"Sending rotated matrix to matlab..." <<std::endl;
+					if(plot)
+					{
+						//put the rotated domain to matlab
+						(*rot_domain)((*tri)(i).global_id[0]-1,0) = (*tri)(i).get_vertex(0).x;
+						(*rot_domain)((*tri)(i).global_id[0]-1,1) = (*tri)(i).get_vertex(0).y;
+						(*rot_domain)((*tri)(i).global_id[0]-1,2) = (*tri)(i).get_vertex(0).z;
 
-				int num_nodes = xyz->n_rows;
-				maw::d_mat rot_domain(new arma::mat(num_nodes,3));
-				rot_domain->zeros();
+						(*rot_domain)((*tri)(i).global_id[1]-1,0) = (*tri)(i).get_vertex(1).x;
+						(*rot_domain)((*tri)(i).global_id[1]-1,1) = (*tri)(i).get_vertex(1).y;
+						(*rot_domain)((*tri)(i).global_id[1]-1,2) = (*tri)(i).get_vertex(1).z;
 
-				for(size_t i=0;i<tri->size();i++)
-				{
-					(*rot_domain)((*tri)(i).global_id[0]-1,0) = (*tri)(i).get_vertex(0).x;
-					(*rot_domain)((*tri)(i).global_id[0]-1,1) = (*tri)(i).get_vertex(0).y;
-					(*rot_domain)((*tri)(i).global_id[0]-1,2) = (*tri)(i).get_vertex(0).z;
+						(*rot_domain)((*tri)(i).global_id[2]-1,0) = (*tri)(i).get_vertex(2).x;
+						(*rot_domain)((*tri)(i).global_id[2]-1,1) = (*tri)(i).get_vertex(2).y;
+						(*rot_domain)((*tri)(i).global_id[2]-1,2) = (*tri)(i).get_vertex(2).z;
+					}
 
-					(*rot_domain)((*tri)(i).global_id[1]-1,0) = (*tri)(i).get_vertex(1).x;
-					(*rot_domain)((*tri)(i).global_id[1]-1,1) = (*tri)(i).get_vertex(1).y;
-					(*rot_domain)((*tri)(i).global_id[1]-1,2) = (*tri)(i).get_vertex(1).z;
-
-					(*rot_domain)((*tri)(i).global_id[2]-1,0) = (*tri)(i).get_vertex(2).x;
-					(*rot_domain)((*tri)(i).global_id[2]-1,1) = (*tri)(i).get_vertex(2).y;
-					(*rot_domain)((*tri)(i).global_id[2]-1,2) = (*tri)(i).get_vertex(2).z;
-				}
-
-				engine->put_double_matrix("mxRot",rot_domain);
-
- 				std::cout <<"Building BBR..." <<std::endl;
- 				//build bounding rect
- 				bounding_rect BBR(engine);// = new bounding_rect(engine);
-/*				maw::d_mat rot_cornerpoints(new arma::mat(cornerpoints->n_rows,2));*/
-				maw::d_vec rot_cp_x(new arma::vec(cornerpoints->n_rows));
-				maw::d_vec rot_cp_y(new arma::vec(cornerpoints->n_rows));
-
-
-				for(int i =0; i<cornerpoints->n_rows; i++)
-				{
-					arma::vec coord(3);
-					coord(0) = (*cornerpoints)(i,0);
-					coord(1) = (*cornerpoints)(i,1);
-					coord(2) = (*cornerpoints)(i,2);
-					
-					coord = K * coord;
-
-					(*rot_cp_x)(i) = coord(0);
-					(*rot_cp_y)(i) = coord(1);
-// 					(*rot_cornerpoints)(i,0) = coord(0);
-// 					(*rot_cornerpoints)(i,1) = coord(1);
-				}
-
- 				//BBR.make(&(rot_domain.unsafe_col(0)),&(rot_domain.unsafe_col(1)),50,50);
-// 				maw::d_vec cp_x = arma::
-// 					(&(rot_cornerpoints->col(0)));
-// 				maw::d_vec cp_y(&(rot_cornerpoints->col(1)));
-
-				BBR.make(rot_cp_x,rot_cp_y,50,50);
-			
-				std::cout << "Generating shadows" << std::endl;
-
-				//for each triangle				
-				for(int i = 0; i< tri->size();i++)
-				{
-					//for each bounding box segment
-					#pragma omp parallel for
+				//	#pragma omp parallel for
 					for(int j=0; j < BBR.n_rows;j++)
 					{
 						for(int k = 0; k < BBR.n_cols; k++)
@@ -387,15 +371,17 @@ int main()
 								  BBR.pt_in_rect(t.get_vertex(2).x, t.get_vertex(2).y, BBR.get_rect(j,k)) )  //pt3
 							{
 								//t.shadow = j*k;
-								BBR.get_rect(j,k)->triangles.push_back(&t);
+								#pragma omp critical
+								{
+									BBR.get_rect(j,k)->triangles.push_back(&t);
+								}
 							}
 						}
 
 					}
 
-				}
+				}//end triangle iteration
 
-				
 
 
 				//for each rect
@@ -498,7 +484,10 @@ int main()
 				if(plot)
 				{
 
-				
+					//only send to matlab if we are plotting
+	 				std::cout <<"Sending rotated matrix to matlab..." <<std::endl;
+					engine->put_double_matrix("mxRot",rot_domain);
+					
 					//for basin view
 					if(viewpoint=="basin")
 					{
@@ -545,7 +534,7 @@ int main()
 // 				
 /*				gfx->save_to_file(fname_time.str());		*/
 
-				}
+			} //end solar elevation check
   				
 				posix_time::time_facet* fname_time_facet = new posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
 				std::stringstream fname_time;

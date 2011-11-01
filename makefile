@@ -2,11 +2,11 @@
 #Chris Marsh 2011
 
 #MATLAB setup
-TMW_ROOT=/usr/local/Matlab2011a
+TMW_ROOT=/usr/local/MATLAB/R2011a
 Arch=glnxa64
 
 CC=icpc 
-CFLAGS=-O3 -openmp -std=c++0x
+CFLAGS=-O3 -openmp -std=c++0x -unroll  -fp-model fast -xSSE4.2
 SRC=src
 
 #brittle, fix

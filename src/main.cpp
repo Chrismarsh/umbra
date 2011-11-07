@@ -35,10 +35,14 @@
 
 using namespace boost;
 
-int main()
+int main(int argc, char* argv[])
 {
 	try{
-
+		if(argc != 3)
+		{
+			throw std::runtime_error("No input files specified! Terminating");
+		}
+				
 		maw::matlab_engine* engine = new maw::matlab_engine();
 		maw::graphics* gfx = new maw::graphics(engine);
 
@@ -54,15 +58,19 @@ int main()
 		engine->add_dir_to_path("E:\\Documents\\Masters\\model runs\\thesis\\dem");
 		
 		//loads the data via matlab
-		std::cout << "Loading data" << std::endl;
-		engine->evaluate("load tin_2mtol_1mdem_nodes.csv");
-		maw::d_mat xyz = engine->get_double_matrix("tin_2mtol_1mdem_nodes");
+		std::string dem_file = std::string(argv[1]);
+		std::cout << "Loading dem " << dem_file << std::endl;
+
+		engine->evaluate(std::string("load ") + dem_file);
+		std::cout << "diag: " << dem_file.substr(0,dem_file.length()-4) << std::endl;
+		maw::d_mat xyz = engine->get_double_matrix(dem_file.substr(0,dem_file.length()-4));
 
 		//load skyview data
-		std::cout << "Loading skyview data" << std::endl;
-		engine->evaluate("load tin_2mtol_1mdem_skyview.csv");
+		std::string viewshed_file = std::string(argv[2]);
+		std::cout << "Loading skyview data " << viewshed_file << std::endl;
+		engine->evaluate(std::string("load ") + viewshed_file);
 		
-		maw::d_mat skyview = engine->get_double_matrix("tin_2mtol_1mdem_skyview");
+		maw::d_mat skyview = engine->get_double_matrix(dem_file.substr(0,viewshed_file.length()-4));
 
 		if(!xyz)
 			throw std::runtime_error(engine->get_last_error().c_str());

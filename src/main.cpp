@@ -38,9 +38,9 @@ using namespace boost;
 int main(int argc, char* argv[])
 {
 	try{
-		if(argc != 3)
+		if(argc != 2)
 		{
-			throw std::runtime_error("No input files specified! Terminating");
+			throw std::runtime_error("No input file specified! Terminating");
 		}
 				
 		maw::matlab_engine* engine = new maw::matlab_engine();
@@ -68,9 +68,8 @@ int main(int argc, char* argv[])
 		//load skyview data
 		std::string viewshed_file = std::string(argv[2]);
 		std::cout << "Loading skyview data " << viewshed_file << std::endl;
-		engine->evaluate(std::string("load ") + viewshed_file);
 		
-		maw::d_mat skyview = engine->get_double_matrix(dem_file.substr(0,viewshed_file.length()-4));
+		maw::d_mat skyview = xyz->row(3); //4th col is the sky view data
 
 		if(!xyz)
 			throw std::runtime_error(engine->get_last_error().c_str());
@@ -78,8 +77,9 @@ int main(int argc, char* argv[])
 		if(!skyview)
 			throw std::runtime_error(engine->get_last_error().c_str());
 
-		engine->evaluate("clear tin_2mtol_1mdem_nodes");
-		engine->evaluate("clear tin_2mtol_1mdem_skyview");
+		
+		engine->evaluate( std::string("clear ") + dem_file.substr(0,dem_file.length()-4) );
+
 
 		//perform the triangulation
 		std::cout << "Creating triangulation..." <<std::endl;

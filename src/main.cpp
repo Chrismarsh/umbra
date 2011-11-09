@@ -52,6 +52,11 @@ int main(int argc, char* argv[])
 
 		std::cout << "Matlab engine created" << std::endl;
 		
+		//		engine->add_dir_to_path("/home/cmarsh/umbra/umbra/matlab");
+        //        engine->add_dir_to_path("/home/cmarsh/umbra/libmaw/matlab_support");
+        //        engine->add_dir_to_path("/home/cmarsh/umbra/thesis/dem");
+        //        engine->add_dir_to_path("/home/cmarsh/umbra/thesis/met");
+
 		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\umbra\\matlab");
 		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\libmaw\\matlab_support");
 		engine->add_dir_to_path("E:\\Documents\\Masters\\model runs\\thesis\\met");

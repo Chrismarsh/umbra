@@ -38,6 +38,8 @@ using namespace boost;
 int main(int argc, char* argv[])
 {
 	try{
+		std::cout << "Attach now" << std::endl;
+		std::cin.get();
 		if(argc != 2)
 		{
 			throw std::runtime_error("No input file specified! Terminating");
@@ -60,27 +62,27 @@ int main(int argc, char* argv[])
 		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\umbra\\matlab");
 		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\libmaw\\matlab_support");
 		engine->add_dir_to_path("E:\\Documents\\Masters\\model runs\\thesis\\met");
-		engine->add_dir_to_path("E:\\Documents\\Masters\\model runs\\thesis\\dem");
+		engine->add_dir_to_path("E:\\Documents\\Masters\\data\\marmot\\TINs\\meshes");
 		
 		//loads the data via matlab
 		std::string dem_file = std::string(argv[1]);
 		std::cout << "Loading dem " << dem_file << std::endl;
-
+		 
 		engine->evaluate(std::string("load ") + dem_file);
-		std::cout << "diag: " << dem_file.substr(0,dem_file.length()-4) << std::endl;
+//		std::cout << "diag: " << dem_file.substr(0,dem_file.length()-4) << std::endl;
 		maw::d_mat xyz = engine->get_double_matrix(dem_file.substr(0,dem_file.length()-4));
 
 		//load skyview data
-		std::string viewshed_file = std::string(argv[2]);
-		std::cout << "Loading skyview data " << viewshed_file << std::endl;
-		
-		maw::d_mat skyview = xyz->row(3); //4th col is the sky view data
+//		std::string viewshed_file = std::string(argv[2]);
+//		std::cout << "Loading skyview data " << viewshed_file << std::endl;
+		arma::vec skyview = arma::conv_to<arma::vec>::from(xyz->col(3));
+//		maw::d_vec skyview(&(xyz->unsafe_col(3))); //4th col is the sky view data
 
 		if(!xyz)
 			throw std::runtime_error(engine->get_last_error().c_str());
 
-		if(!skyview)
-			throw std::runtime_error(engine->get_last_error().c_str());
+//		if(!skyview)
+//			throw std::runtime_error(engine->get_last_error().c_str());
 
 		
 		engine->evaluate( std::string("clear ") + dem_file.substr(0,dem_file.length()-4) );
@@ -111,6 +113,7 @@ int main(int argc, char* argv[])
 		maw::d_mat cornerpoints = engine->get_double_matrix("cornerpoints");
 		engine->evaluate("clear cornerpoints");
 
+		engine->evaluate("mxDomain=mxDomain(:,1:3)"); //because we are reading in the skyview data along with the dem, future calls assume a nx3 matrix.
 		std::cout << "Creating face normals..." <<std::endl;
 		tri->compute_face_normals();
  
@@ -160,7 +163,7 @@ int main(int argc, char* argv[])
 		ss.imbue(std::locale(ss.getloc(),facet));
 		
 		std::string viewpoint = "basin";
-		bool plot = false;
+		bool plot = true;
 		//plot handle
 		double handle=-1.0;
 		//title handle
@@ -334,7 +337,7 @@ int main(int argc, char* argv[])
 					int i1 = ((*tri)(i).global_id[0])-1;
 					int i2 = ((*tri)(i).global_id[1])-1;
 					int i3 = ((*tri)(i).global_id[2])-1;
-					double avg_skyview = ( (*skyview)(i1) + (*skyview)(i2) + (*skyview)(i3) ) /3.0;
+					double avg_skyview = ( (skyview)(i1) + (skyview)(i2) + (skyview)(i3) ) /3.0;
 					(*tri)(i).radiation_diff = diff_obs * avg_skyview; //correct for skyview factor
 					
 					arma::vec flat_normal(3);//xyz
@@ -554,7 +557,9 @@ int main(int argc, char* argv[])
 				fname_time << time;
 
 				engine->evaluate(std::string("save ") + fname_time.str());
+	  			std::cout << "Paused..." << std::endl;
 
+	  			std::cin.get();
 			}//end elevation check
 			else
 			{
@@ -565,6 +570,7 @@ int main(int argc, char* argv[])
 
 
 //  			std::cout << "Paused..." << std::endl;
+				
 //  			std::cin.get();
 			time = time + dt;
 			data_counter++;

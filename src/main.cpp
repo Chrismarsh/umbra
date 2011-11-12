@@ -38,8 +38,8 @@ using namespace boost;
 int main(int argc, char* argv[])
 {
 	try{
-		std::cout << "Attach now" << std::endl;
-		std::cin.get();
+//		std::cout << "Attach now" << std::endl;
+//		std::cin.get();
 		if(argc != 2)
 		{
 			throw std::runtime_error("No input file specified! Terminating");
@@ -59,11 +59,17 @@ int main(int argc, char* argv[])
         //        engine->add_dir_to_path("/home/cmarsh/umbra/thesis/dem");
         //        engine->add_dir_to_path("/home/cmarsh/umbra/thesis/met");
 
-		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\umbra\\matlab");
-		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\libmaw\\matlab_support");
-		engine->add_dir_to_path("E:\\Documents\\Masters\\model runs\\thesis\\met");
-		engine->add_dir_to_path("E:\\Documents\\Masters\\data\\marmot\\TINs\\meshes");
-		
+//		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\umbra\\matlab");
+	//	engine->add_dir_to_path("E:\\Documents\\Masters\\code\\libmaw\\matlab_support");
+	//	engine->add_dir_to_path("E:\\Documents\\Masters\\model runs\\thesis\\met");
+	//	engine->add_dir_to_path("E:\\Documents\\Masters\\data\\marmot\\TINs\\meshes");
+		engine->add_dir_to_path("/home/cmarsh/umbra/data/meshes");
+		engine->add_dir_to_path("/home/cmarsh/umbra/data/met");
+			
+		engine->add_dir_to_path("/home/cmarsh/umbra/libmaw/matlab_support");
+			
+		engine->add_dir_to_path("/home/cmarsh/umbra/umbra/matlab");
+			
 		//loads the data via matlab
 		std::string dem_file = std::string(argv[1]);
 		std::cout << "Loading dem " << dem_file << std::endl;
@@ -120,12 +126,12 @@ int main(int argc, char* argv[])
 		std::cout << "Loading radiation data..." << std::endl;
 
 
- 		engine->evaluate("load feb_1_data.csv");
-	//	engine->evaluate("load season2011met.csv");
+ 	//	engine->evaluate("load feb_1_data.csv");
+		engine->evaluate("load season2011met.csv");
 	//	engine->evaluate("load aprilmayjune.csv");
 		
-    	maw::d_mat radiation_data = engine->get_double_matrix("feb_1_data");
-	//	arma::mat* radiation_data = engine->get_double_matrix("season2011met");
+    //	maw::d_mat radiation_data = engine->get_double_matrix("feb_1_data");
+		maw::d_mat radiation_data = engine->get_double_matrix("season2011met");
 	//	maw::d_mat radiation_data = engine->get_double_matrix("aprilmayjune");
 	//	engine->evaluate("clear feb_1_data");
  		int data_counter = 0;
@@ -133,15 +139,15 @@ int main(int argc, char* argv[])
 		
 
 		//start up time
-//  		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
-//  							posix_time::hours(19)+posix_time::minutes(45)); //start at 6am
-// 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
-// 			posix_time::hours(12)+posix_time::minutes(15)); 
+  		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
+  							posix_time::hours(19)+posix_time::minutes(45)); //start at 6am
+ 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
+ 			posix_time::hours(12)+posix_time::minutes(15)); 
 
-		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
-			posix_time::hours(7)+posix_time::minutes(00)); 
-		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
-			posix_time::hours(18)+posix_time::minutes(45)); 
+//		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
+//			posix_time::hours(7)+posix_time::minutes(00)); 
+//		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
+//			posix_time::hours(18)+posix_time::minutes(45)); 
 
 // 		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
 // 			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
@@ -163,7 +169,7 @@ int main(int argc, char* argv[])
 		ss.imbue(std::locale(ss.getloc(),facet));
 		
 		std::string viewpoint = "basin";
-		bool plot = true;
+		bool plot = false;
 		//plot handle
 		double handle=-1.0;
 		//title handle
@@ -557,9 +563,9 @@ int main(int argc, char* argv[])
 				fname_time << time;
 
 				engine->evaluate(std::string("save ") + fname_time.str());
-	  			std::cout << "Paused..." << std::endl;
+	  			//std::cout << "Paused..." << std::endl;
 
-	  			std::cin.get();
+	  			//std::cin.get();
 			}//end elevation check
 			else
 			{
@@ -589,13 +595,13 @@ int main(int argc, char* argv[])
 			selfshadow(i) = obs_shortwave_selfshadow[i];
 		}
 
-		remoteshadow.save("Feb1_remoteshadow_values.csv", arma::raw_ascii);
-		selfshadow.save("Feb1_selfshadow_values.csv", arma::raw_ascii);
+		remoteshadow.save("remoteshadow_values.csv", arma::raw_ascii);
+		selfshadow.save("selfshadow_values.csv", arma::raw_ascii);
 
 		*cummulative_error = *cummulative_error / 1000000.0;
 
 		engine->put_double_vector("error",cummulative_error);
-		engine->evaluate("save Feb1_2m_error_mat");
+		engine->evaluate("save error_mat");
 		engine->stop();
 	}
 	catch(std::runtime_error e)

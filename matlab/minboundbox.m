@@ -153,8 +153,8 @@ end
 % never needed, so we drop them.
 
 try
- K = convhulln([x,y,z],{'Qt'});  % 'Pp' will silence the warnings
-
+ % K = convhulln([x,y,z],{'Pp'});  % 'Pp' will silence the warnings
+K = convhull(x,y,z);  
   % exclude those points inside the hull as not relevant
   % also sorts the points into their convex hull as a
   % closed polygon
@@ -328,7 +328,7 @@ end % function checkbox
 function rot = minrect(x,y,metric)
 % see comments from minboundrect of John d'Errico
 % i am only interested in the additional rotation matrix around [0,0,1]
-edges = convhull(x,y,{'Qt'});
+edges = convhull(x,y);
 x = x(edges);y = y(edges);
 ind = 1:length(x)-1;
 Rmat = @(theta) [cos(theta) sin(theta);-sin(theta) cos(theta)];

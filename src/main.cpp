@@ -54,21 +54,12 @@ int main(int argc, char* argv[])
 
 		std::cout << "Matlab engine created" << std::endl;
 		
-		//		engine->add_dir_to_path("/home/cmarsh/umbra/umbra/matlab");
-        //        engine->add_dir_to_path("/home/cmarsh/umbra/libmaw/matlab_support");
-        //        engine->add_dir_to_path("/home/cmarsh/umbra/thesis/dem");
-        //        engine->add_dir_to_path("/home/cmarsh/umbra/thesis/met");
 
-//		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\umbra\\matlab");
-	//	engine->add_dir_to_path("E:\\Documents\\Masters\\code\\libmaw\\matlab_support");
-	//	engine->add_dir_to_path("E:\\Documents\\Masters\\model runs\\thesis\\met");
-	//	engine->add_dir_to_path("E:\\Documents\\Masters\\data\\marmot\\TINs\\meshes");
-		engine->add_dir_to_path("/home/cmarsh/umbra/data/meshes");
-		engine->add_dir_to_path("/home/cmarsh/umbra/data/met");
-			
-		engine->add_dir_to_path("/home/cmarsh/umbra/libmaw/matlab_support");
-			
-		engine->add_dir_to_path("/home/cmarsh/umbra/umbra/matlab");
+		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\umbra\\matlab");
+		engine->add_dir_to_path("E:\\Documents\\Masters\\code\\libmaw\\matlab_support");
+		engine->add_dir_to_path("E:\\Documents\\Research\\2013 Terrain Scaling\\code\\umbra\\met");
+		engine->add_dir_to_path("E:\\Documents\\Research\\2013 Terrain Scaling\\code\\umbra\\mesh");
+
 			
 		//loads the data via matlab
 		std::string dem_file = std::string(argv[1]);
@@ -100,7 +91,8 @@ int main(int argc, char* argv[])
 		tri->create_delaunay(&(xyz->unsafe_col(0)),&(xyz->unsafe_col(1)),&(xyz->unsafe_col(2)));
 
  		std::cout << "Finding obs triangle..." << std::endl;
- 		triangle* obs_tri = tri->find_containing_triangle(626345.8844,5646903.1124);
+ 		//triangle* obs_tri = tri->find_containing_triangle(626345.8844,5646903.1124); //marmot
+		triangle* obs_tri = tri->find_containing_triangle(547422.604,5688038.866); //ohara
 		if(!obs_tri)
 			throw std::runtime_error("Can't find containing triangle");
 
@@ -126,12 +118,12 @@ int main(int argc, char* argv[])
 		std::cout << "Loading radiation data..." << std::endl;
 
 
- 	//	engine->evaluate("load feb_1_data.csv");
-		engine->evaluate("load season2011met.csv");
+ 		engine->evaluate("load feb_1_data.csv");
+	//	engine->evaluate("load season2011met.csv");
 	//	engine->evaluate("load aprilmayjune.csv");
 		
-    //	maw::d_mat radiation_data = engine->get_double_matrix("feb_1_data");
-		maw::d_mat radiation_data = engine->get_double_matrix("season2011met");
+    	maw::d_mat radiation_data = engine->get_double_matrix("feb_1_data");
+	//	maw::d_mat radiation_data = engine->get_double_matrix("season2011met");
 	//	maw::d_mat radiation_data = engine->get_double_matrix("aprilmayjune");
 	//	engine->evaluate("clear feb_1_data");
  		int data_counter = 0;
@@ -139,15 +131,15 @@ int main(int argc, char* argv[])
 		
 
 		//start up time
-  		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
-  							posix_time::hours(19)+posix_time::minutes(45)); //start at 6am
- 		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
- 			posix_time::hours(12)+posix_time::minutes(15)); 
+//   		posix_time::ptime time (gregorian::date(2010,gregorian::Oct,17), 
+//   							posix_time::hours(19)+posix_time::minutes(45)); //start at 6am
+//  		posix_time::ptime end_time (gregorian::date(2011,gregorian::Jun,14), 
+//  			posix_time::hours(12)+posix_time::minutes(15)); 
 
-//		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
-//			posix_time::hours(7)+posix_time::minutes(00)); 
-//		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
-//			posix_time::hours(18)+posix_time::minutes(45)); 
+		posix_time::ptime time (gregorian::date(2011,gregorian::Feb,1), 
+			posix_time::hours(7)+posix_time::minutes(00)); 
+		posix_time::ptime end_time (gregorian::date(2011,gregorian::Feb,1), 
+			posix_time::hours(18)+posix_time::minutes(45)); 
 
 // 		posix_time::ptime time (gregorian::date(2011,gregorian::Apr,1), 
 // 			posix_time::hours(0)+posix_time::minutes(0)); //start at 6am
